@@ -1,0 +1,16 @@
+body {
+    background-color: lightblue;
+    font-family: Arial, sans-serif;
+    color: darkblue;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 36px;
+}
+
+.inicio {
+    text-align: center;
+    margin-top: 50px;
+}
