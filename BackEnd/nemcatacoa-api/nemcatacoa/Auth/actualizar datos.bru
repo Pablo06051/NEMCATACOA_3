@@ -1,0 +1,15 @@
+meta {
+  name: actualizar datos
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/admin/usuarios/{{userId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

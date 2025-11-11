@@ -1,0 +1,29 @@
+meta {
+  name: Registrar
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "admin@nemcatacoa.com",
+    "password": "TuClaveAdmin",
+    "nombres": "Admin",
+    "apellidos": "Admin"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

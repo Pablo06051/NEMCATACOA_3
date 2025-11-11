@@ -1,0 +1,42 @@
+meta {
+  name: listar usuarios
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/admin/usuarios
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{adminToken}}
+}
+
+tests {
+  // Guarda automáticamente el ID del usuario con el email del environment
+  try {
+    const arr = JSON.parse(response.body || "[]");
+    const objetivo = getVar("userEmail") || "usuario@ejemplo.com";
+  
+    const u = arr.find(x =>
+      x.email && x.email.toLowerCase() === objetivo.toLowerCase()
+    );
+  
+    if (u) {
+      // ✅ Guarda el ID directamente en el environment activo
+      setEnvVar("userId", u.id);
+      console.log("✅ userId guardado correctamente:", u.id, "para", objetivo);
+    } else {
+      console.log("⚠️ No se encontró usuario con email:", objetivo);
+    }
+  } catch (e) {
+    console.log("⚠️ Error en el script de Tests:", e.message);
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

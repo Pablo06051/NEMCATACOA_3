@@ -1,0 +1,42 @@
+meta {
+  name: login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "admin@nemcatacoa.com",
+    "password": "TuClaveAdmin"
+  }
+  
+}
+
+tests {
+  try {
+    const data = JSON.parse(response.body || "{}");
+    if (data.token) {
+      setVar("token", data.token);
+      console.log("✅ Token guardado automáticamente en {{token}}");
+    } else {
+      console.log("⚠️ No se recibió token");
+    }
+  } catch (e) {
+    console.log("⚠️ Error parseando respuesta:", e.message);
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}
