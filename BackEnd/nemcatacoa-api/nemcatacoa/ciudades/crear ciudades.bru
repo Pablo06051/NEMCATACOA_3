@@ -1,0 +1,47 @@
+meta {
+  name: crear ciudades
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/admin/ciudades
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "id": "medellin",
+    "slug": "medellin",
+    "nombre": "Medellín",
+    "resumen": "Ciudad de la eterna primavera con innovación y cultura vibrante.",
+    "imagenes": ["/IMG/MEDELLIN.png"],
+    "etiquetas": ["Innovación", "Naturaleza", "Cultura"],
+    "duracion": "2-3 días",
+    "calificacion_promedio": "0.00",
+    "calificacion_count": 0,
+    "coordenadas": { "lat": 6.2442, "lng": -75.5812 },
+    "descripcion": "Medellín combina tradición, modernidad y naturaleza. Con su clima templado y su gente amable, es un ejemplo de transformación urbana y social.",
+    "mejor_epoca": "Todo el año",
+    "puntos_interes": [
+      { "nombre": "Comuna 13", "descripcion": "Ejemplo de transformación social y arte urbano." },
+      { "nombre": "Parque Arví", "descripcion": "Reserva natural ideal para senderismo y ecoturismo." },
+      { "nombre": "Pueblito Paisa", "descripcion": "Réplica de un pueblo antioqueño tradicional." }
+    ],
+    "estado": "activo",
+    "fecha_creacion": "2025-11-13T00:00:00.000Z",
+    "fecha_actualizacion": "2025-11-13T00:00:00.000Z"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

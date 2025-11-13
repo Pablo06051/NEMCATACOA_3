@@ -1,0 +1,21 @@
+meta {
+  name: desactivar ciudad
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/admin/ciudades/medellin
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{adminToken}}
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

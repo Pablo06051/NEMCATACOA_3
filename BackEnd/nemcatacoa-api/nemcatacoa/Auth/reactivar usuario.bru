@@ -1,25 +1,18 @@
 meta {
-  name: actualizar datos
+  name: reactivar usuario
   type: http
-  seq: 2
+  seq: 6
 }
 
 put {
-  url: {{baseUrl}}/admin/usuarios/{{userId}}
-  body: json
+  url: {{baseUrl}}/admin/usuarios/{{userId}}/reactivar
+  body: none
   auth: inherit
 }
 
 headers {
   Authorization: Bearer {{adminToken}}
   Content-Type: application/json
-}
-
-body:json {
-  {
-    "nombre": "juan actualizado",
-    "estado": "activo"
-  }
 }
 
 settings {

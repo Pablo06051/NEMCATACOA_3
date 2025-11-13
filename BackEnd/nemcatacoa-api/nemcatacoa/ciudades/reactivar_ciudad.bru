@@ -1,11 +1,11 @@
 meta {
-  name: actualizar datos
+  name: reactivar_ciudad
   type: http
-  seq: 2
+  seq: 6
 }
 
 put {
-  url: {{baseUrl}}/admin/usuarios/{{userId}}
+  url: {{baseUrl}}/admin/ciudades/medellin
   body: json
   auth: inherit
 }
@@ -17,9 +17,9 @@ headers {
 
 body:json {
   {
-    "nombre": "juan actualizado",
     "estado": "activo"
   }
+  
 }
 
 settings {

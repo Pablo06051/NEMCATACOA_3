@@ -1,0 +1,20 @@
+meta {
+  name: listar ciudad por id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/ciudades/medellin
+  body: none
+  auth: inherit
+}
+
+headers {
+  : 
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

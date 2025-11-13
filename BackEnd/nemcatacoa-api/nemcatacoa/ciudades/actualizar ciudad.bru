@@ -1,25 +1,26 @@
 meta {
-  name: actualizar datos
+  name: actualizar ciudad
   type: http
-  seq: 2
+  seq: 4
 }
 
 put {
-  url: {{baseUrl}}/admin/usuarios/{{userId}}
+  url: {{baseUrl}}/admin/ciudades/medellin
   body: json
   auth: inherit
 }
 
 headers {
-  Authorization: Bearer {{adminToken}}
   Content-Type: application/json
+  Authorization: Bearer {{adminToken}}
 }
 
 body:json {
   {
-    "nombre": "juan actualizado",
+    "nombre": "medellin actualizado",
     "estado": "activo"
   }
+  
 }
 
 settings {
