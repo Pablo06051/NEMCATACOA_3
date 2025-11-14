@@ -103,117 +103,70 @@ describe('forgotPassword', () => {
 });
 
 describe('resetPassword', () => {
-  it('updates the password and invalidates the token when it is valid', async () => {
-    const futureDate = new Date('2025-01-01T01:00:00.000Z');
-    const clientCalls = [];
-    let released = false;
-    let hashedInput = null;
-
-    const client = {
-      async query(text, params) {
-        clientCalls.push({ text, params });
-        if (/SELECT id, user_id/.test(text)) {
-          return {
-            rowCount: 1,
-            rows: [
-              {
-                id: 'token-1',
-                user_id: 'user-1',
-                expires_at: futureDate.toISOString(),
-                used_at: null,
-              },
-            ],
-          };
-        }
-        return {};
-      },
-      release() {
-        released = true;
-      },
-    };
-
-    const controller = createAuthController({
-      db: {
-        query: async () => {
-          throw new Error('db.query should not be used in resetPassword');
-        },
-        pool: {
-          connect: async () => client,
-        },
-      },
-      passwords: {
-        hashPassword: async (value) => {
-          hashedInput = value;
-          return 'hashed-password';
-        },
-        verifyPassword: async () => {
-          throw new Error('verifyPassword should not be called');
-        },
-      },
-      dateProvider: () => new Date('2025-01-01T00:30:00.000Z'),
-    });
-
-    const res = createRes();
-    await controller.resetPassword(
-      { body: { token: '11111111-1111-1111-1111-111111111111', password: 'NewPassword123' } },
-      res
-    );
-
-    assert.equal(hashedInput, 'NewPassword123');
-    const statements = clientCalls.map((call) => call.text.trim());
-    assert.equal(statements[0], 'BEGIN');
-    assert.ok(statements.some((text) => /UPDATE usuario SET password_hash/.test(text)));
-    assert.ok(statements.some((text) => /UPDATE password_reset_tokens/.test(text)));
-    assert.ok(statements.some((text) => /DELETE FROM password_reset_tokens/.test(text)));
-    assert.equal(statements.at(-1), 'COMMIT');
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body, { message: 'Contraseña actualizada correctamente.' });
-    assert.equal(released, true);
+  beforeEach(() => {
+    clientQueryMock.mockReset();
+    releaseMock.mockReset();
+    hashPassword.mockClear();
   });
 
-  it('returns 400 when the token is missing or expired', async () => {
-    const clientCalls = [];
-    let released = false;
+  it('updates the password and invalidates the token when it is valid', async () => {
+    const fakeToken = '11111111-1111-1111-1111-111111111111';
+    const futureDate = new Date(Date.now() + 10 * 60 * 1000);
 
-    const client = {
-      async query(text) {
-        clientCalls.push(text.trim());
-        if (/SELECT id, user_id/.test(text)) {
-          return { rowCount: 0, rows: [] };
-        }
-        return {};
-      },
-      release() {
-        released = true;
-      },
-    };
+    clientQueryMock
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [
+          {
+            id: 'token-1',
+            user_id: 'user-1',
+            expires_at: futureDate.toISOString(),
+            used_at: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
 
-    const controller = createAuthController({
-      db: {
-        query: async () => {
-          throw new Error('db.query should not be used in resetPassword');
-        },
-        pool: {
-          connect: async () => client,
-        },
-      },
-      passwords: {
-        hashPassword: async () => {
-          throw new Error('hashPassword should not run');
-        },
-        verifyPassword: async () => {
-          throw new Error('verifyPassword should not be called');
-        },
-      },
-      dateProvider: () => new Date('2025-01-01T02:00:00.000Z'),
-    });
-
+    const req = { body: { token: fakeToken, password: 'NewPassword123' } };
     const res = createRes();
-    await controller.resetPassword({ body: { token: 'invalid', password: 'whatever123' } }, res);
 
-    assert.equal(res.statusCode, 400);
-    assert.deepEqual(res.body, { error: 'Token inválido o expirado' });
-    assert.ok(clientCalls.includes('ROLLBACK'));
-    assert.equal(released, true);
+    await resetPassword(req, res);
+
+    expect(clientQueryMock).toHaveBeenCalledWith('BEGIN');
+    expect(hashPassword).toHaveBeenCalledWith('NewPassword123');
+    expect(clientQueryMock).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE usuario SET password_hash'),
+      ['hashed-password', 'user-1']
+    );
+    expect(clientQueryMock).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE password_reset_tokens'),
+      ['token-1']
+    );
+    expect(clientQueryMock).toHaveBeenCalledWith(
+      expect.stringContaining('DELETE FROM password_reset_tokens'),
+      ['user-1', 'token-1']
+    );
+    expect(clientQueryMock).toHaveBeenCalledWith('COMMIT');
+    expect(res.body).toEqual({ message: 'Contraseña actualizada correctamente.' });
+    expect(releaseMock).toHaveBeenCalled();
+  });
+
+  it('returns 400 when the token is missing', async () => {
+    clientQueryMock
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] });
+
+    const req = { body: { token: 'invalid', password: 'whatever123' } };
+    const res = createRes();
+
+    await resetPassword(req, res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'Token inválido o expirado' });
+    expect(clientQueryMock).toHaveBeenCalledWith('ROLLBACK');
   });
 });
