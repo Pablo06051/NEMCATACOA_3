@@ -35,6 +35,7 @@ router.put('/admin/usuarios/:id/reactivar', asyncHandler(reactivarUsuario));
 router.post('/admin/ciudades', validate(createCiudadSchema), asyncHandler(crearCiudad));
 router.put('/admin/ciudades/:id', validate(updateCiudadSchema), asyncHandler(actualizarCiudad));
 router.delete('/admin/ciudades/:id', asyncHandler(desactivarCiudad));
+router.put('/admin/ciudades/:id/reactivar', asyncHandler(reactivarCiudad));
 
 // 💬 Sugerencias
 router.get('/admin/sugerencias', asyncHandler(listSugerencias));
