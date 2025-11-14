@@ -1,37 +1,65 @@
-export default function App() { 
-  return ( 
-    <main className="min-h-dvh bg-gray-50 grid place-items-center p-6"> 
-      <section className="w-full max-w-xl rounded-2xl border bg-white p-8 
-shadow"> 
-        <h1 className="text-3xl font-bold tracking-tight">React 19 + Tailwind 
-v4</h1> 
-        <p className="mt-2 text-gray-600"> 
-          Setup moderno funcionando. Edita <code>src/App.jsx</code> y guarda 
-para ver cambios. 
-        </p> 
- 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3"> 
-          <div className="rounded-xl border p-4"> 
-            <p className="text-sm text-gray-500">Estado</p> 
-            <p className="text-lg font-semibold">OK ✅</p> 
-          </div> 
-          <div className="rounded-xl border p-4"> 
-            <p className="text-sm text-gray-500">Tailwind</p> 
-            <p className="text-lg font-semibold">v4 (CSS-first)</p> 
-          </div> 
-          <div className="rounded-xl border p-4"> 
-            <p className="text-sm text-gray-500">Build</p> 
-            <p className="text-lg font-semibold">Vite</p> 
-          </div> 
-        </div> 
- 
-        <button className="mt-6 inline-flex items-center justify-center 
-rounded-xl border px-4 py-2 font-medium hover:bg-gray-50 active:scale
-[0.98]"> 
-          Botón Tailwind 
-        </button> 
-      </section> 
-    </main> 
-  ) 
-} 
+import HomePage from "./pages/home.jsx";
+import LoginForm from "./components/login.jsx";
+import RegistroForm from "./components/registro.jsx";
+import AdminDashboard from "./pages/admin.jsx";
+import NavbarGeneral from "./components/Navbar_general.jsx";
+import Footer from "./components/Footer.jsx";
+
+function AuthLayout({ children, title, subtitle }) {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <NavbarGeneral />
+      <div className="mx-auto flex min-h-[calc(100vh-200px)] w-full max-w-6xl flex-col items-center justify-center px-4 py-10">
+        <div className="mb-10 text-center">
+          {title && (
+            <>
+              <p className="mt-6 text-3xl font-semibold text-slate-900">{title}</p>
+              {subtitle && <p className="mt-2 text-base text-slate-500">{subtitle}</p>}
+            </>
+          )}
+        </div>
+        {children}
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+export default function App() {
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+
+  if (path === "/login") {
+    return (
+      <AuthLayout
+        title=""
+        subtitle=""
+      >
+        <LoginForm onSuccess={() => (window.location.href = "/")} />
+      </AuthLayout>
+    );
+  }
+
+  if (path === "/registro") {
+    return (
+      <AuthLayout
+        title=""
+        subtitle=""
+      >
+        <RegistroForm />
+      </AuthLayout>
+    );
+  }
+
+  if (path === "/admin") {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavbarGeneral />
+        <AdminDashboard />
+        <Footer />
+      </div>
+    );
+  }
+
+  return <HomePage />;
+}
  
