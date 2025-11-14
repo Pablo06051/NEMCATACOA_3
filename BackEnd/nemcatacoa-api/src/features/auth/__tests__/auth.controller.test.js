@@ -1,32 +1,15 @@
-process.env.DB_HOST = 'localhost';
-process.env.DB_PORT = '5432';
-process.env.DB_NAME = 'test';
-process.env.DB_USER = 'test';
-process.env.DB_PASSWORD = 'test';
-process.env.JWT_SECRET = 'secret';
-process.env.BCRYPT_COST = '4';
+process.env.DB_HOST = process.env.DB_HOST || 'localhost';
+process.env.DB_PORT = process.env.DB_PORT || '5432';
+process.env.DB_NAME = process.env.DB_NAME || 'test';
+process.env.DB_USER = process.env.DB_USER || 'test';
+process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'test';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'secret';
+process.env.BCRYPT_COST = process.env.BCRYPT_COST || '4';
 
-const queryMock = jest.fn();
-const clientQueryMock = jest.fn();
-const releaseMock = jest.fn();
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
 
-jest.mock('../../../db', () => ({
-  query: (...args) => queryMock(...args),
-  pool: {
-    connect: async () => ({
-      query: (...args) => clientQueryMock(...args),
-      release: releaseMock,
-    }),
-  },
-}));
-
-jest.mock('../../../utils/passwords', () => ({
-  hashPassword: jest.fn(() => Promise.resolve('hashed-password')),
-  verifyPassword: jest.fn(),
-}));
-
-const { forgotPassword, resetPassword } = require('../auth.controller');
-const { hashPassword } = require('../../../utils/passwords');
+const { createAuthController } = require('../auth.controller');
 
 function createRes() {
   return {
@@ -44,52 +27,78 @@ function createRes() {
 }
 
 describe('forgotPassword', () => {
-  beforeEach(() => {
-    queryMock.mockReset();
-  });
-
   it('persists a token when the user exists and responds with 202', async () => {
-    queryMock
-      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-1' }] })
-      .mockResolvedValueOnce({ rowCount: 1 });
+    const queryCalls = [];
+    const responses = [
+      { rowCount: 1, rows: [{ id: 'user-1' }] },
+      { rowCount: 1 },
+    ];
+    const queryStub = async (text, params) => {
+      queryCalls.push({ text, params });
+      return responses.shift();
+    };
 
-    const req = { body: { email: 'USER@example.com' } };
+    const controller = createAuthController({
+      db: {
+        query: queryStub,
+        pool: {
+          connect: async () => {
+            throw new Error('pool.connect should not be called');
+          },
+        },
+      },
+      randomUUID: () => 'token-123',
+      dateProvider: () => new Date('2025-01-01T00:00:00.000Z'),
+    });
+
     const res = createRes();
+    await controller.forgotPassword({ body: { email: 'USER@example.com' } }, res);
 
-    await forgotPassword(req, res);
-
-    expect(res.statusCode).toBe(202);
-    expect(res.body).toEqual({
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(res.body, {
       message: 'Si el correo existe, recibirás instrucciones para restablecer la contraseña.',
     });
 
-    expect(queryMock).toHaveBeenCalledTimes(2);
-    expect(queryMock).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('FROM usuario'),
-      ['user@example.com']
-    );
-    expect(queryMock).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining('INSERT INTO password_reset_tokens'),
-      [
-        'user-1',
-        expect.any(String),
-        expect.any(Date),
-      ]
-    );
+    assert.equal(queryCalls.length, 2);
+    assert.match(queryCalls[0].text, /FROM usuario/i);
+    assert.deepEqual(queryCalls[0].params, ['user@example.com']);
+
+    assert.match(queryCalls[1].text, /INSERT INTO password_reset_tokens/i);
+    const [userId, tokenValue, expiresAt] = queryCalls[1].params;
+    assert.equal(userId, 'user-1');
+    assert.equal(tokenValue, 'token-123');
+    const expectedExpiration = new Date('2025-01-01T01:00:00.000Z');
+    assert.ok(expiresAt instanceof Date);
+    assert.equal(expiresAt.toISOString(), expectedExpiration.toISOString());
   });
 
   it('does not create a token when the user does not exist', async () => {
-    queryMock.mockResolvedValueOnce({ rowCount: 0, rows: [] });
+    const queryCalls = [];
+    const responses = [{ rowCount: 0, rows: [] }];
+    const queryStub = async (text, params) => {
+      queryCalls.push({ text, params });
+      return responses.shift();
+    };
 
-    const req = { body: { email: 'missing@example.com' } };
+    const controller = createAuthController({
+      db: {
+        query: queryStub,
+        pool: {
+          connect: async () => {
+            throw new Error('pool.connect should not be called');
+          },
+        },
+      },
+      randomUUID: () => 'token-ignored',
+      dateProvider: () => new Date('2025-01-01T00:00:00.000Z'),
+    });
+
     const res = createRes();
+    await controller.forgotPassword({ body: { email: 'missing@example.com' } }, res);
 
-    await forgotPassword(req, res);
-
-    expect(res.statusCode).toBe(202);
-    expect(queryMock).toHaveBeenCalledTimes(1);
+    assert.equal(res.statusCode, 202);
+    assert.equal(queryCalls.length, 1);
+    assert.match(queryCalls[0].text, /FROM usuario/i);
   });
 });
 
