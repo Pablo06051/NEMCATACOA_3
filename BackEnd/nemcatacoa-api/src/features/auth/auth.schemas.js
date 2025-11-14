@@ -12,4 +12,20 @@ const loginSchema = Joi.object({
   password: Joi.string().min(8).required(),
 });
 
-module.exports = { registerSchema, loginSchema };
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string().email().required(),
+});
+
+const resetPasswordSchema = Joi.object({
+  token: Joi.string()
+    .guid({ version: 'uuidv4' })
+    .required(),
+  password: Joi.string().min(8).required(),
+});
+
+module.exports = {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+};
