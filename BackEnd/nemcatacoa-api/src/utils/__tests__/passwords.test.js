@@ -6,6 +6,9 @@ process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'secret';
 process.env.BCRYPT_COST = '4';
 
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+
 const { hashPassword, verifyPassword } = require('../passwords');
 
 describe('password utilities', () => {
@@ -13,12 +16,12 @@ describe('password utilities', () => {
     const plain = 'MySecret123';
     const hashed = await hashPassword(plain);
 
-    expect(hashed).not.toBe(plain);
-    expect(typeof hashed).toBe('string');
-    expect(hashed.length).toBeGreaterThan(plain.length);
+    assert.notEqual(hashed, plain);
+    assert.equal(typeof hashed, 'string');
+    assert.ok(hashed.length > plain.length);
 
     const ok = await verifyPassword(plain, hashed);
-    expect(ok).toBe(true);
+    assert.equal(ok, true);
   });
 
   it('fails verification with an incorrect password', async () => {
@@ -26,6 +29,6 @@ describe('password utilities', () => {
     const hashed = await hashPassword(plain);
 
     const ok = await verifyPassword('wrongPassword', hashed);
-    expect(ok).toBe(false);
+    assert.equal(ok, false);
   });
 });
