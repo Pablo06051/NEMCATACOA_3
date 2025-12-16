@@ -6,6 +6,7 @@ import NavbarGeneral from "./components/Navbar_general.jsx";
 import Footer from "./components/Footer.jsx";
 import ClienteDashboard from "./pages/cliente.jsx";
 import ProveedorDashboard from "./pages/proveedor.jsx";
+import ProveedorAccesoPage from "./pages/proveedorAcceso.jsx";
 
 function AuthLayout({ children, title, subtitle }) {
   return (
@@ -74,6 +75,10 @@ export default function App() {
         <Footer />
       </div>
     );
+  }
+
+  if (path === "/proveedor/acceso") {
+    return <ProveedorAccesoPage />;
   }
 
   return <HomePage />;
