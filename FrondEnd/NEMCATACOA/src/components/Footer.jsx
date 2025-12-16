@@ -3,13 +3,15 @@ import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin } from "lucide-react";
 import "../assets/css/Footer.css";
 
+const MotionDiv = motion.div;
+
 export default function Footer() {
   return (
     <footer className="app-footer">
       <div className="footer-grid">
         
         {/* Sección 1 - Información */}
-        <motion.div className="footer-section"
+        <MotionDiv className="footer-section"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -20,10 +22,10 @@ export default function Footer() {
             aliados locales en toda Colombia. Transformamos cada paso del viaje en un recuerdo
             memorable.
           </p>
-        </motion.div>
+        </MotionDiv>
 
         {/* Sección 2 - Contacto */}
-        <motion.div className="footer-section"
+        <MotionDiv className="footer-section"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -40,10 +42,10 @@ export default function Footer() {
               <MapPin size={16} /> Bogotá, Colombia
             </li>
           </ul>
-        </motion.div>
+        </MotionDiv>
 
         {/* Sección 3 - Redes Sociales */}
-        <motion.div className="footer-section"
+        <MotionDiv className="footer-section"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
@@ -78,7 +80,7 @@ export default function Footer() {
               <Linkedin size={20} />
             </a>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
 
       {/* Línea inferior */}
