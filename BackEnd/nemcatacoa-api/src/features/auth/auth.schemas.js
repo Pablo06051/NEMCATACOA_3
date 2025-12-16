@@ -23,9 +23,20 @@ const resetPasswordSchema = Joi.object({
   password: Joi.string().min(8).required(),
 });
 
+const registerProveedorSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).required(),
+  nombres: Joi.string().min(1).required(),
+  apellidos: Joi.string().min(1).required(),
+  nombre_comercial: Joi.string().max(150).required(),
+  telefono: Joi.string().allow('', null),
+  descripcion: Joi.string().allow('', null),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  registerProveedorSchema,
 };
