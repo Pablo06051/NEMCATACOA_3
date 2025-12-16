@@ -4,6 +4,8 @@ import RegistroForm from "./components/registro.jsx";
 import AdminDashboard from "./pages/admin.jsx";
 import NavbarGeneral from "./components/Navbar_general.jsx";
 import Footer from "./components/Footer.jsx";
+import ClienteDashboard from "./pages/cliente.jsx";
+import ProveedorDashboard from "./pages/proveedor.jsx";
 
 function AuthLayout({ children, title, subtitle }) {
   return (
@@ -30,10 +32,7 @@ export default function App() {
 
   if (path === "/login") {
     return (
-      <AuthLayout
-        title=""
-        subtitle=""
-      >
+      <AuthLayout title="" subtitle="">
         <LoginForm onSuccess={() => (window.location.href = "/")} />
       </AuthLayout>
     );
@@ -41,10 +40,7 @@ export default function App() {
 
   if (path === "/registro") {
     return (
-      <AuthLayout
-        title=""
-        subtitle=""
-      >
+      <AuthLayout title="" subtitle="">
         <RegistroForm />
       </AuthLayout>
     );
@@ -60,6 +56,25 @@ export default function App() {
     );
   }
 
+  if (path === "/cliente") {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavbarGeneral />
+        <ClienteDashboard />
+        <Footer />
+      </div>
+    );
+  }
+
+  if (path === "/proveedor") {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavbarGeneral />
+        <ProveedorDashboard />
+        <Footer />
+      </div>
+    );
+  }
+
   return <HomePage />;
 }
- 
