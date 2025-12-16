@@ -12,6 +12,9 @@ const comentariosRoutes = require('./features/comentarios/comentarios.routes');
 const usuarioRoutes = require('./features/usuario/usuario.routes');
 const sugerenciasRoutes = require('./features/sugerencias/sugerencias.routes');
 const adminRoutes = require('./features/admin/admin.routes');
+const paquetesRoutes = require('./features/paquetes/paquetes.routes');
+const proveedorRoutes = require('./features/proveedor/proveedor.routes');
+const reservasRoutes = require('./features/reservas/reservas.routes');
 
 const { config } = require('./config/env');
 
@@ -28,9 +31,12 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 // Rutas
 app.use('/auth', authRoutes);
 app.use('/ciudades', ciudadesRoutes);
+app.use('/paquetes', paquetesRoutes);
 app.use('/', comentariosRoutes);
 app.use('/', usuarioRoutes);
 app.use('/', sugerenciasRoutes);
+app.use('/', proveedorRoutes);
+app.use('/', reservasRoutes);
 app.use('/', adminRoutes);
 
 // Manejo de errores (al final)

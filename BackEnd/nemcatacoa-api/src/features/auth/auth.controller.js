@@ -38,7 +38,7 @@ function createAuthController({
         config.jwtSecret,
         { expiresIn: '2h' }
       );
-      return res.status(201).json({ token });
+      return res.status(201).json({ token, user: u });
     } catch (e) {
       if (e.code === '23505') {
         return res.status(409).json({ error: 'Email ya registrado' });
@@ -62,7 +62,45 @@ function createAuthController({
     if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     const token = jwt.sign({ id: u.id, email: u.email, rol: u.rol }, config.jwtSecret, { expiresIn: '2h' });
-    res.json({ token });
+    res.json({ token, user: { id: u.id, email: u.email, rol: u.rol } });
+  }
+
+  async function registerProveedor(req, res) {
+    const { email, password, nombres, apellidos, nombre_comercial, telefono, descripcion } = req.body;
+    const client = await dbPool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const passwordHash = await hash(password);
+
+      const usuarioResult = await client.query(
+        `INSERT INTO usuario (email, password_hash, nombres, apellidos, rol, estado)
+         VALUES ($1,$2,$3,$4,'proveedor','activo')
+         RETURNING id, email, rol`,
+        [email, passwordHash, nombres, apellidos]
+      );
+
+      const user = usuarioResult.rows[0];
+
+      await client.query(
+        `INSERT INTO proveedor (id, nombre_comercial, telefono, descripcion, verificado)
+         VALUES ($1,$2,$3,$4,false)`,
+        [user.id, nombre_comercial, telefono || null, descripcion || null]
+      );
+
+      const token = jwt.sign({ id: user.id, email: user.email, rol: user.rol }, config.jwtSecret, { expiresIn: '2h' });
+      await client.query('COMMIT');
+      return res.status(201).json({ token, user });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      if (e.code === '23505') {
+        return res.status(409).json({ error: 'Email ya registrado' });
+      }
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 
   async function forgotPassword(req, res) {
@@ -150,7 +188,7 @@ function createAuthController({
     }
   }
 
-  return { register, login, forgotPassword, resetPassword };
+  return { register, login, forgotPassword, resetPassword, registerProveedor };
 }
 
 const defaultController = createAuthController();

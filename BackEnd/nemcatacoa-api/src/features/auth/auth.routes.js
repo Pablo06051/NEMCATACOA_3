@@ -1,11 +1,14 @@
 const express = require('express');
 const { validate } = require('../../middlewares/validate');
 const { authLimiter } = require('../../middlewares/rateLimiter');
+const { authJwt } = require('../../middlewares/authJwt');
+const { requireRole } = require('../../middlewares/requireRole');
 const {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  registerProveedorSchema,
 } = require('./auth.schemas');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const {
@@ -13,6 +16,7 @@ const {
   login,
   forgotPassword,
   resetPassword,
+  registerProveedor,
 } = require('./auth.controller');
 
 const router = express.Router();
@@ -30,6 +34,14 @@ router.post(
   authLimiter,
   validate(resetPasswordSchema),
   asyncHandler(resetPassword)
+);
+router.post(
+  '/register-proveedor',
+  authLimiter,
+  authJwt,
+  requireRole('admin'),
+  validate(registerProveedorSchema),
+  asyncHandler(registerProveedor)
 );
 
 module.exports = router;
