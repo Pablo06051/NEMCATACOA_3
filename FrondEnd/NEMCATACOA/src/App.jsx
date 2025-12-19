@@ -1,9 +1,16 @@
 import HomePage from "./pages/home.jsx";
 import LoginForm from "./components/login.jsx";
 import RegistroForm from "./components/registro.jsx";
+import RegistroProveedor from "./components/registroProveedor.jsx";
 import AdminDashboard from "./pages/admin.jsx";
+import UserDashboard from "./pages/user-dashboard.jsx";
+import ProviderDashboard from "./pages/provider-dashboard.jsx";
 import NavbarGeneral from "./components/Navbar_general.jsx";
 import Footer from "./components/Footer.jsx";
+import AdminCiudades from "./pages/admin-ciudades.jsx";
+import AdminProveedor from "./pages/admin-proveedor.jsx";
+import AdminCiudad from "./pages/admin-ciudad.jsx";
+import { getSession } from "./services/session.js";
 
 function AuthLayout({ children, title, subtitle }) {
   return (
@@ -27,6 +34,7 @@ function AuthLayout({ children, title, subtitle }) {
 
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const session = getSession();
 
   if (path === "/login") {
     return (
@@ -34,7 +42,14 @@ export default function App() {
         title=""
         subtitle=""
       >
-        <LoginForm onSuccess={() => (window.location.href = "/")} />
+        <LoginForm onSuccess={() => {
+          const s = getSession();
+          const role = s.user?.rol;
+          if (role === 'proveedor') return (window.location.href = '/proveedor');
+          if (role === 'admin') return (window.location.href = '/admin');
+          if (role === 'usuario') return (window.location.href = '/usuario');
+          return (window.location.href = '/');
+        }} />
       </AuthLayout>
     );
   }
@@ -50,14 +65,48 @@ export default function App() {
     );
   }
 
-  if (path === "/admin") {
+  if (path === "/registro-proveedor") {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <NavbarGeneral />
-        <AdminDashboard />
-        <Footer />
-      </div>
+      <AuthLayout
+        title=""
+        subtitle=""
+      >
+        <RegistroProveedor />
+      </AuthLayout>
     );
+  }
+
+  if (path === "/usuario") {
+    return <UserDashboard />;
+  }
+
+  if (path === "/proveedor") {
+    return <ProviderDashboard />;
+  }
+
+  if (path === "/admin") {
+    // `AdminDashboard` already includes its own `NavbarAdministrador` and `Footer`.
+    return <AdminDashboard />;
+  }
+
+  // Detalle de ciudad administrable: /admin/ciudades/:id (must be checked before the list exact match)
+  if (path.startsWith('/admin/ciudades/') && path !== '/admin/ciudades') {
+    return <AdminCiudad />;
+  }
+
+  if (path === "/admin/ciudades") {
+    // Página de administración de ciudades
+    return <AdminCiudades />;
+  }
+
+  // Detalle de proveedor administrable: /admin/proveedores/:id
+  if (path.startsWith('/admin/proveedores/')) {
+    return <AdminProveedor />;
+  }
+
+  if (path === "/dashboard") {
+    if (session.user?.rol === "admin") return <AdminDashboard />;
+    return <UserDashboard />;
   }
 
   return <HomePage />;

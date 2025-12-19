@@ -13,6 +13,119 @@ async function listUsuarios(_req, res) {
   res.json(r.rows);
 }
 
+// Listado de proveedores (con datos del perfil y su usuario)
+async function listProveedores(_req, res) {
+  try {
+    const r = await query(
+      `SELECT p.id as id_proveedor, p.nombre_comercial, p.telefono, p.descripcion, p.verificado, p.fecha_creacion, u.email, u.estado as usuario_estado
+       FROM proveedor p
+       JOIN usuario u ON u.id = p.id
+       ORDER BY p.nombre_comercial ASC`
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error('[admin.listProveedores] error:', err);
+    res.status(500).json({ error: 'Error al listar proveedores' });
+  }
+}
+
+// 🔼 Verificar proveedor
+function isValidUUID(id) {
+  return typeof id === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+}
+
+async function verificarProveedor(req, res) {
+  const { id } = req.params;
+  if (!isValidUUID(id)) {
+    console.warn('[admin.verificarProveedor] invalid id:', id);
+    return res.status(400).json({ error: 'ID de proveedor inválido' });
+  }
+  try {
+    console.log('[admin.verificarProveedor] id:', id);
+    const r = await query(
+      `UPDATE proveedor SET verificado = true WHERE id = $1 RETURNING id, verificado`,
+      [id]
+    );
+    if (r.rowCount === 0) return res.status(404).json({ error: 'Proveedor no encontrado' });
+    console.log('[admin.verificarProveedor] updated rows:', r.rowCount);
+    res.json({ ok: true, message: 'Proveedor verificado', proveedor: r.rows[0] });
+  } catch (err) {
+    console.error('[admin.verificarProveedor] id:', id, 'error:', err);
+    res.status(500).json({ error: 'Error al verificar el proveedor' });
+  }
+}
+
+// 🔻 Desverificar proveedor
+async function desverificarProveedor(req, res) {
+  const { id } = req.params;
+  if (!isValidUUID(id)) {
+    console.warn('[admin.desverificarProveedor] invalid id:', id);
+    return res.status(400).json({ error: 'ID de proveedor inválido' });
+  }
+  try {
+    console.log('[admin.desverificarProveedor] id:', id);
+    const r = await query(
+      `UPDATE proveedor SET verificado = false WHERE id = $1 RETURNING id, verificado`,
+      [id]
+    );
+    if (r.rowCount === 0) return res.status(404).json({ error: 'Proveedor no encontrado' });
+    console.log('[admin.desverificarProveedor] updated rows:', r.rowCount);
+    res.json({ ok: true, message: 'Proveedor desverificado', proveedor: r.rows[0] });
+  } catch (err) {
+    console.error('[admin.desverificarProveedor] id:', id, 'error:', err);
+    res.status(500).json({ error: 'Error al desverificar el proveedor' });
+  }
+}
+
+// Detalle de proveedor: perfil, paquetes y reservas
+async function getProveedorDetail(req, res) {
+  const { id } = req.params;
+  if (!isValidUUID(id)) {
+    console.warn('[admin.getProveedorDetail] invalid id:', id);
+    return res.status(400).json({ error: 'ID de proveedor inválido' });
+  }
+  try {
+    console.log('[admin.getProveedorDetail] id:', id, 'fetching perfil');
+    // Perfil
+    const perfilRes = await query(
+      `SELECT p.id as id_proveedor, p.nombre_comercial, p.telefono, p.descripcion, p.verificado, p.fecha_creacion, u.email, u.estado as usuario_estado
+       FROM proveedor p
+       JOIN usuario u ON u.id = p.id
+       WHERE p.id = $1`,
+      [id]
+    );
+    console.log('[admin.getProveedorDetail] perfil rows:', perfilRes.rowCount);
+    if (perfilRes.rowCount === 0) return res.status(404).json({ error: 'Proveedor no encontrado' });
+    const perfil = perfilRes.rows[0];
+
+    console.log('[admin.getProveedorDetail] fetching paquetes');
+    // Paquetes del proveedor
+    const paquetesRes = await query(
+      `SELECT * FROM paquete WHERE id_proveedor = $1 ORDER BY fecha_creacion DESC`,
+      [id]
+    );
+    console.log('[admin.getProveedorDetail] paquetes rows:', paquetesRes.rowCount);
+
+    console.log('[admin.getProveedorDetail] fetching reservas');
+    // Reservas para los paquetes del proveedor
+    const reservasRes = await query(
+      `SELECT r.*, p.titulo, p.id_ciudad
+       FROM reserva r
+       JOIN paquete p ON p.id = r.id_paquete
+       WHERE p.id_proveedor = $1
+       ORDER BY r.fecha DESC`,
+      [id]
+    );
+    console.log('[admin.getProveedorDetail] reservas rows:', reservasRes.rowCount);
+
+    res.json({ proveedor: perfil, paquetes: paquetesRes.rows, reservas: reservasRes.rows });
+  } catch (err) {
+    console.error('[admin.getProveedorDetail] id:', id, 'error:', err);
+    console.error(err.stack);
+    res.status(500).json({ error: 'Error al obtener el detalle del proveedor' });
+  }
+}
+
 async function updateUsuario(req, res) {
   const { id } = req.params;
   const { rol, estado } = req.body || {};
@@ -76,6 +189,49 @@ async function crearCiudad(req, res) {
   );
 
   res.status(201).json({ ok: true, message: "Ciudad creada" });
+}
+
+// Listado de ciudades (incluye inactivas) para administración
+async function listCiudadesAdmin(_req, res) {
+  try {
+    const r = await query(
+      `SELECT id, slug, nombre, resumen, imagenes, estado
+       FROM ciudad
+       ORDER BY nombre ASC`
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error('[admin.listCiudadesAdmin] error:', err);
+    res.status(500).json({ error: 'Error al listar ciudades' });
+  }
+}
+
+// Detalle de ciudad + paquetes asociados
+async function getCiudadDetail(req, res) {
+  const { id } = req.params; // id is slug or city id
+  if (!id || typeof id !== 'string') {
+    return res.status(400).json({ error: 'ID de ciudad inválido' });
+  }
+  try {
+    const ciudadRes = await query(
+      `SELECT id, slug, nombre, resumen, imagenes, etiquetas, duracion, coordenadas, descripcion, mejor_epoca, puntos_interes, estado, fecha_creacion
+       FROM ciudad WHERE id = $1`,
+      [id]
+    );
+    if (ciudadRes.rowCount === 0) return res.status(404).json({ error: 'Ciudad no encontrada' });
+    const ciudad = ciudadRes.rows[0];
+
+    const paquetesRes = await query(
+      `SELECT id, titulo, precio, estado, fecha_creacion FROM paquete WHERE id_ciudad = $1 ORDER BY fecha_creacion DESC`,
+      [id]
+    );
+
+    res.json({ ciudad, paquetes: paquetesRes.rows });
+  } catch (err) {
+    console.error('[admin.getCiudadDetail] id:', id, 'error:', err);
+    console.error(err.stack);
+    res.status(500).json({ error: 'Error al obtener detalle de la ciudad' });
+  }
 }
 
 async function actualizarCiudad(req, res) {
@@ -167,6 +323,9 @@ async function resolverSugerencia(req, res) {
    =========================== */
 module.exports = {
   listUsuarios,
+  listProveedores,
+  verificarProveedor,
+  desverificarProveedor,
   updateUsuario,
   desactivarUsuario,
   reactivarUsuario,
@@ -174,6 +333,10 @@ module.exports = {
   actualizarCiudad,
   desactivarCiudad,
   reactivarCiudad,
+  listCiudadesAdmin,
+  // Detail endpoints
+  getCiudadDetail,
+  getProveedorDetail,
   listSugerencias,
   resolverSugerencia
 };

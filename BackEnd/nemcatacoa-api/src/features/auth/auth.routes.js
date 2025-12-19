@@ -38,8 +38,6 @@ router.post(
 router.post(
   '/register-proveedor',
   authLimiter,
-  authJwt,
-  requireRole('admin'),
   validate(registerProveedorSchema),
   asyncHandler(registerProveedor)
 );

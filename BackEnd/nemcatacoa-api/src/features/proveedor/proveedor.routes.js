@@ -14,7 +14,8 @@ const { paqueteSchema } = require('./proveedor.schemas');
 
 const router = express.Router();
 
-router.use(authJwt, requireRole('proveedor'));
+// Aplicar auth + rol únicamente a rutas que comiencen con /proveedor
+router.use('/proveedor', authJwt, requireRole('proveedor'));
 
 router.get('/proveedor/paquetes', asyncHandler(myPackages));
 router.post('/proveedor/paquetes', validate(paqueteSchema), asyncHandler(createPackage));

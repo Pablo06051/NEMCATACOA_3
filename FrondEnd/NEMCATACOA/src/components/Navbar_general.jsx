@@ -10,6 +10,7 @@ const navLinks = [
 
 export default function NavbarGeneral() {
   const [isOpen, setIsOpen] = useState(false);
+  const hasSession = Boolean(localStorage.getItem("nemcatacoaToken"));
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur-md">
@@ -52,6 +53,12 @@ export default function NavbarGeneral() {
             className="rounded-full bg-gradient-to-r from-sky-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:scale-[1.02]"
           >
             Crear cuenta
+          </a>
+          <a
+            href="/registro-proveedor"
+            className="ml-2 rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Proveedor
           </a>
         </div>
 
@@ -102,6 +109,12 @@ export default function NavbarGeneral() {
               className="rounded-lg bg-gradient-to-r from-sky-500 to-emerald-400 px-3 py-2 text-center text-sm font-semibold text-white shadow-lg shadow-sky-500/30"
             >
               Crear cuenta
+            </a>
+            <a
+              href="/registro-proveedor"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-semibold text-slate-700"
+            >
+              Proveedor
             </a>
           </nav>
         </div>

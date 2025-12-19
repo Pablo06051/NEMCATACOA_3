@@ -94,6 +94,13 @@ function createAuthController({
       return res.status(201).json({ token, user });
     } catch (e) {
       await client.query('ROLLBACK');
+      // Manejo amigable cuando el enum rol_usuario no contiene 'proveedor'
+      if (e.message && e.message.includes('invalid input value for enum')) {
+        return res.status(500).json({
+          error:
+            "Error en la base de datos: el rol 'proveedor' no existe en el enum 'rol_usuario'. Ejecuta la migración que añade este valor: ALTER TYPE public.rol_usuario ADD VALUE 'proveedor'",
+        });
+      }
       if (e.code === '23505') {
         return res.status(409).json({ error: 'Email ya registrado' });
       }

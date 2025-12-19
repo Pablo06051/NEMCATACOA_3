@@ -8,7 +8,8 @@ const { createReserva, listMisReservas, cancelReserva } = require('./reservas.co
 
 const router = express.Router();
 
-router.use(authJwt, requireRole('usuario'));
+// Aplicar auth + rol únicamente a rutas que comiencen con /reservas
+router.use('/reservas', authJwt, requireRole('usuario'));
 
 router.post('/reservas', validate(crearReservaSchema), asyncHandler(createReserva));
 router.get('/reservas/mias', asyncHandler(listMisReservas));

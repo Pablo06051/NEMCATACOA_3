@@ -22,8 +22,9 @@ async function apiRequest(path, { method = "GET", data, token, headers } = {}) {
   const payload = isJson ? await res.json() : null;
 
   if (!res.ok) {
-    const error = new Error(payload?.error || "Error en la solicitud");
+    const error = new Error(payload?.error || payload?.message || "Error en la solicitud");
     error.status = res.status;
+    error.payload = payload;
     throw error;
   }
 

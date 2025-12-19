@@ -33,10 +33,18 @@ router.put('/admin/usuarios/:id/desactivar', asyncHandler(desactivarUsuario));
 router.put('/admin/usuarios/:id/reactivar', asyncHandler(reactivarUsuario));
 
 // 🏙️ Ciudades
+router.get('/admin/ciudades', asyncHandler(require('./admin.controller').listCiudadesAdmin));
+router.get('/admin/ciudades/:id', asyncHandler(require('./admin.controller').getCiudadDetail));
 router.post('/admin/ciudades', validate(createCiudadSchema), asyncHandler(crearCiudad));
 router.put('/admin/ciudades/:id', validate(updateCiudadSchema), asyncHandler(actualizarCiudad));
 router.delete('/admin/ciudades/:id', asyncHandler(desactivarCiudad));
 router.put('/admin/ciudades/:id/reactivar', asyncHandler(reactivarCiudad));
+
+// 🧾 Proveedores
+router.get('/admin/proveedores', asyncHandler(require('./admin.controller').listProveedores));
+router.get('/admin/proveedores/:id', asyncHandler(require('./admin.controller').getProveedorDetail));
+router.put('/admin/proveedores/:id/verificar', asyncHandler(require('./admin.controller').verificarProveedor));
+router.put('/admin/proveedores/:id/desverificar', asyncHandler(require('./admin.controller').desverificarProveedor));
 
 // 💬 Sugerencias
 router.get('/admin/sugerencias', asyncHandler(listSugerencias));

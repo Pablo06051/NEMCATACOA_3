@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getSession } from "../services/session";
 
-export default function NavbarAdministrador() {
+export default function NavbarProveedor() {
   const [isOpen, setIsOpen] = useState(false);
   const session = getSession();
 
@@ -17,13 +17,13 @@ export default function NavbarAdministrador() {
           <img src="/IMG/LOGO.png" alt="Logo Nemcatacoa" className="h-12 w-12 rounded-2xl object-contain shadow-lg" />
           <div className="leading-tight">
             <p className="text-lg font-semibold text-slate-900">Nemcatacoa</p>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">Administrador</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">Proveedor</p>
           </div>
         </a>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-          <a href="/admin" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Panel admin</a>
-          <a href="/admin/ciudades" className="text-sm font-medium text-slate-700">Ciudades</a>
+          <a href="/proveedor" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Panel</a>
+          <a href="/paquetes/crear" className="text-sm font-medium text-slate-700">Crear paquete</a>
         </nav>
 
         <div className="hidden gap-3 md:flex">
@@ -40,8 +40,8 @@ export default function NavbarAdministrador() {
       {isOpen && (
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-3 text-sm font-medium text-slate-700">
-            <a href="/admin" className="rounded-lg px-3 py-2">Panel admin</a>
-            <a href="/admin/ciudades" className="rounded-lg px-3 py-2">Ciudades</a>
+            <a href="/proveedor" className="rounded-lg px-3 py-2">Panel</a>
+            <a href="/paquetes/crear" className="rounded-lg px-3 py-2">Crear paquete</a>
             <button onClick={logout} className="rounded-lg px-3 py-2 text-left text-rose-600">Cerrar sesión</button>
           </nav>
         </div>
