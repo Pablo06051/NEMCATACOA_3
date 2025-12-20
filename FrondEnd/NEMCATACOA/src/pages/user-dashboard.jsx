@@ -14,9 +14,14 @@ const SectionCard = ({ title, children }) => (
 );
 
 export default function UserDashboard() {
-  const [{ favoritos, historial, loading, error }, setState] = useState({
+  const [
+    { favoritos, historial, paquetes, misReservas, loading, error },
+    setState,
+  ] = useState({
     favoritos: [],
     historial: [],
+    paquetes: [],
+    misReservas: [],
     loading: true,
     error: null,
   });
@@ -30,11 +35,21 @@ export default function UserDashboard() {
 
     async function fetchData() {
       try {
-        const [favData, histData] = await Promise.all([
+        const [favData, histData, paquetesData, misReservasData] = await Promise.all([
           apiRequest("/usuario/favoritos", { token }),
           apiRequest("/usuario/historial?limit=10", { token }),
+          apiRequest("/paquetes?limit=10", { token }),
+          apiRequest("/reservas/mias", { token }),
         ]);
-        setState({ favoritos: favData, historial: histData, loading: false, error: null });
+
+        setState({
+          favoritos: favData,
+          historial: histData,
+          paquetes: paquetesData,
+          misReservas: misReservasData,
+          loading: false,
+          error: null,
+        });
       } catch (err) {
         setState((s) => ({
           ...s,
@@ -43,8 +58,50 @@ export default function UserDashboard() {
         }));
       }
     }
+
     fetchData();
   }, []);
+
+  const handleReservar = async (id_paquete) => {
+    try {
+      const { token } = getSession();
+      if (!token) {
+        setState((s) => ({ ...s, error: "Inicia sesión para reservar." }));
+        return;
+      }
+
+      await apiRequest("/reservas", {
+        method: "POST",
+        token,
+        data: { id_paquete, cantidad_personas: 1 },
+      });
+
+      const updated = await apiRequest("/reservas/mias", { token });
+      setState((s) => ({ ...s, misReservas: updated, error: null }));
+    } catch (e) {
+      setState((s) => ({ ...s, error: e.message || "No se pudo reservar" }));
+    }
+  };
+
+  const handleCancelar = async (reservaId) => {
+    try {
+      const { token } = getSession();
+      if (!token) {
+        setState((s) => ({ ...s, error: "Inicia sesión para cancelar." }));
+        return;
+      }
+
+      await apiRequest(`/reservas/${reservaId}/cancelar`, {
+        method: "PUT",
+        token,
+      });
+
+      const updated = await apiRequest("/reservas/mias", { token });
+      setState((s) => ({ ...s, misReservas: updated, error: null }));
+    } catch (e) {
+      setState((s) => ({ ...s, error: e.message || "No se pudo cancelar" }));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -54,7 +111,7 @@ export default function UserDashboard() {
           <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Panel de usuario</p>
           <h1 className="text-3xl font-semibold text-slate-900">Tu experiencia Nemcatacoa</h1>
           <p className="text-slate-500">
-            Consulta tus favoritos, últimas rutas revisadas y sigue explorando destinos.
+            Consulta tus favoritos, historial y gestiona tus reservas de paquetes.
           </p>
         </header>
 
@@ -63,6 +120,70 @@ export default function UserDashboard() {
 
         {!loading && !error && (
           <div className="grid gap-6 lg:grid-cols-2">
+            <SectionCard title="Paquetes disponibles">
+              {paquetes.length === 0 ? (
+                <p className="text-sm text-slate-500">No hay paquetes disponibles por ahora.</p>
+              ) : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {paquetes.map((p) => {
+                    const cuposDisponibles = Number(p.cupo_max) - Number(p.cupos_ocupados || 0);
+                    return (
+                      <li key={p.id} className="py-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="font-semibold text-slate-900">{p.titulo}</p>
+                            <p className="text-slate-500">
+                              Cupos: {cuposDisponibles} disponibles
+                            </p>
+                          </div>
+                          <button
+                            className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                            disabled={cuposDisponibles <= 0}
+                            onClick={() => handleReservar(p.id)}
+                          >
+                            Reservar (1)
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </SectionCard>
+
+            <SectionCard title="Mis reservas">
+              {misReservas.length === 0 ? (
+                <p className="text-sm text-slate-500">Aún no tienes reservas.</p>
+              ) : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {misReservas.map((r) => (
+                    <li key={r.id} className="py-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-slate-900">{r.titulo}</p>
+                          <p className="text-slate-500">
+                            Estado: {r.estado} — Personas: {r.cantidad_personas}
+                          </p>
+                          <p className="text-slate-400 text-xs">
+                            {r.fecha ? new Date(r.fecha).toLocaleString() : ""}
+                          </p>
+                        </div>
+
+                        {r.estado === "reservada" && (
+                          <button
+                            className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                            onClick={() => handleCancelar(r.id)}
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SectionCard>
+
             <SectionCard title="Favoritos">
               {favoritos.length === 0 ? (
                 <p className="text-sm text-slate-500">Aún no tienes destinos favoritos.</p>
