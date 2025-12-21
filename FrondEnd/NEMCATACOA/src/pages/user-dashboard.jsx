@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import NavbarGeneral from "../components/Navbar_general";
+import NavbarUsuario from "../components/Navbar_usuario";
 import Footer from "../components/Footer";
 import { apiRequest } from "../services/api";
 import { getSession } from "../services/session";
 
-const SectionCard = ({ title, children }) => (
-  <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+const SectionCard = ({ title, children, id }) => (
+  <section id={id} className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
     </div>
@@ -48,7 +48,7 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <NavbarGeneral />
+      <NavbarUsuario />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
         <header className="flex flex-col gap-2">
           <p className="text-sm uppercase tracking-[0.35em] text-slate-400">Panel de usuario</p>
@@ -63,7 +63,7 @@ export default function UserDashboard() {
 
         {!loading && !error && (
           <div className="grid gap-6 lg:grid-cols-2">
-            <SectionCard title="Favoritos">
+            <SectionCard title="Favoritos" id="favoritos">
               {favoritos.length === 0 ? (
                 <p className="text-sm text-slate-500">Aún no tienes destinos favoritos.</p>
               ) : (
@@ -83,7 +83,7 @@ export default function UserDashboard() {
               )}
             </SectionCard>
 
-            <SectionCard title="Historial de consultas">
+            <SectionCard title="Historial de consultas" id="historial">
               {historial.length === 0 ? (
                 <p className="text-sm text-slate-500">Sin actividades recientes.</p>
               ) : (

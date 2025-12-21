@@ -8,6 +8,7 @@ const {
   createPackage,
   updatePackage,
   deactivatePackage,
+  reactivatePackage,
   myBookings,
 } = require('./proveedor.controller');
 const { paqueteSchema } = require('./proveedor.schemas');
@@ -21,6 +22,7 @@ router.get('/proveedor/paquetes', asyncHandler(myPackages));
 router.post('/proveedor/paquetes', validate(paqueteSchema), asyncHandler(createPackage));
 router.put('/proveedor/paquetes/:id', validate(paqueteSchema), asyncHandler(updatePackage));
 router.delete('/proveedor/paquetes/:id', asyncHandler(deactivatePackage));
+router.put('/proveedor/paquetes/:id/reactivar', asyncHandler(reactivatePackage));
 
 router.get('/proveedor/reservas', asyncHandler(myBookings));
 

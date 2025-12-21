@@ -9,9 +9,12 @@ function authJwt(req, res, next) {
   const token = h.slice(7);
   try {
     const payload = jwt.verify(token, config.jwtSecret); // { id, email, rol }
+    // Log minimal payload for debugging (id/email/rol) — temporal
+    console.log('[authJwt] token payload:', { id: payload.id, email: payload.email, rol: payload.rol });
     req.user = payload;
     next();
-  } catch {
+  } catch (err) {
+    console.error('[authJwt] token verify error:', err && err.message);
     return res.status(401).json({ error: 'Token inválido' });
   }
 }

@@ -126,6 +126,30 @@ async function getProveedorDetail(req, res) {
   }
 }
 
+// Cambiar estado de un paquete (aprobar/inactivar/activar)
+async function updatePaqueteEstado(req, res) {
+  const { id } = req.params;
+  const { estado } = req.body || {};
+  const allowedEstados = ['pendiente', 'aprobado', 'activo', 'inactivo'];
+
+  if (!estado || !allowedEstados.includes(estado)) {
+    return res.status(400).json({ error: 'Estado inválido', allowedEstados });
+  }
+
+  const r = await query(
+    `UPDATE paquete
+       SET estado = $1,
+           fecha_actualizacion = CURRENT_TIMESTAMP
+     WHERE id = $2
+     RETURNING id, estado, titulo, id_proveedor`,
+    [estado, id]
+  );
+
+  if (r.rowCount === 0) return res.status(404).json({ error: 'Paquete no encontrado' });
+
+  res.json({ ok: true, paquete: r.rows[0] });
+}
+
 async function updateUsuario(req, res) {
   const { id } = req.params;
   const { rol, estado } = req.body || {};
@@ -329,6 +353,7 @@ module.exports = {
   updateUsuario,
   desactivarUsuario,
   reactivarUsuario,
+  updatePaqueteEstado,
   crearCiudad,
   actualizarCiudad,
   desactivarCiudad,

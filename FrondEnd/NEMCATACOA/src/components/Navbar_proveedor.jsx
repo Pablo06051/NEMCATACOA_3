@@ -23,7 +23,7 @@ export default function NavbarProveedor() {
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
           <a href="/proveedor" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Panel</a>
-          <a href="/paquetes/crear" className="text-sm font-medium text-slate-700">Crear paquete</a>
+          <a href="/proveedor/paquetes/crear" className="text-sm font-medium text-slate-700">Crear paquete</a>
         </nav>
 
         <div className="hidden gap-3 md:flex">
@@ -41,7 +41,7 @@ export default function NavbarProveedor() {
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-3 text-sm font-medium text-slate-700">
             <a href="/proveedor" className="rounded-lg px-3 py-2">Panel</a>
-            <a href="/paquetes/crear" className="rounded-lg px-3 py-2">Crear paquete</a>
+            <a href="/proveedor/paquetes/crear" className="rounded-lg px-3 py-2">Crear paquete</a>
             <button onClick={logout} className="rounded-lg px-3 py-2 text-left text-rose-600">Cerrar sesión</button>
           </nav>
         </div>

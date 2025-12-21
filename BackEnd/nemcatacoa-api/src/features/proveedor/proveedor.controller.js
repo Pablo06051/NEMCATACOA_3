@@ -9,6 +9,14 @@ async function myPackages(req, res) {
 }
 
 async function createPackage(req, res) {
+  // Debug: mostrar información mínima de usuario y headers al recibir la petición
+  try {
+    console.log('[proveedor.createPackage] req.user:', { id: req.user?.id, email: req.user?.email, rol: req.user?.rol });
+    console.log('[proveedor.createPackage] Authorization header present:', !!req.headers.authorization);
+  } catch (err) {
+    console.error('[proveedor.createPackage] debug log error:', err && err.message);
+  }
+
   const p = req.body;
   const r = await query(
     `INSERT INTO paquete (
@@ -95,6 +103,24 @@ async function deactivatePackage(req, res) {
   res.json(r.rows[0]);
 }
 
+async function reactivatePackage(req, res) {
+  const { id } = req.params;
+
+  const r = await query(
+    `UPDATE paquete
+       SET estado = 'pendiente', fecha_actualizacion = CURRENT_TIMESTAMP
+     WHERE id = $1 AND id_proveedor = $2
+     RETURNING id, estado`,
+    [id, req.user.id]
+  );
+
+  if (r.rowCount === 0) {
+    return res.status(404).json({ error: 'Paquete no encontrado o no autorizado' });
+  }
+
+  res.json(r.rows[0]);
+}
+
 async function myBookings(req, res) {
   const r = await query(
     `SELECT r.*, p.titulo, p.id_ciudad
@@ -108,4 +134,11 @@ async function myBookings(req, res) {
   res.json(r.rows);
 }
 
-module.exports = { myPackages, createPackage, updatePackage, deactivatePackage, myBookings };
+module.exports = {
+  myPackages,
+  createPackage,
+  updatePackage,
+  deactivatePackage,
+  reactivatePackage,
+  myBookings,
+};

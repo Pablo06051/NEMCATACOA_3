@@ -20,6 +20,7 @@ export default function AdminDashboard() {
     usuarios: [],
     proveedores: [],
     sugerencias: [],
+    paquetes: [],
     loading: true,
     error: null,
     info: null,
@@ -29,12 +30,13 @@ export default function AdminDashboard() {
   async function loadData() {
     try {
       setState((s) => ({ ...s, loading: true, error: null, info: null }));
-      const [usuarios, proveedores, sugerencias] = await Promise.all([
+      const [usuarios, proveedores, sugerencias, paquetes] = await Promise.all([
         apiRequest("/admin/usuarios", { token }),
         apiRequest("/admin/proveedores", { token }),
         apiRequest("/admin/sugerencias", { token }),
+        apiRequest("/paquetes?all=true&limit=200", { token }),
       ]);
-      setState((s) => ({ ...s, usuarios, proveedores, sugerencias, loading: false, error: null }));
+      setState((s) => ({ ...s, usuarios, proveedores, sugerencias, paquetes, loading: false, error: null }));
     } catch (err) {
       if (err.status === 401 || err.status === 403) {
         const roleHint = user?.rol ? ` (rol actual: ${user.rol})` : "";
@@ -50,6 +52,25 @@ export default function AdminDashboard() {
         loading: false,
         error: err.message || "No se pudo cargar la información",
       }));
+    }
+  }
+
+  async function handleEstadoPaquete(id, estado) {
+    if (!confirm(`¿Cambiar estado del paquete a "${estado}"?`)) return;
+    setActionLoading((m) => ({ ...m, [`pkg-${id}`]: true }));
+    setState((s) => ({ ...s, error: null, info: null }));
+    try {
+      await apiRequest(`/admin/paquetes/${id}/estado`, { method: "PUT", token, data: { estado } });
+      setState((s) => ({ ...s, info: "Estado de paquete actualizado." }));
+      await loadData();
+    } catch (err) {
+      setState((s) => ({ ...s, error: err.message || "No se pudo actualizar el paquete." }));
+    } finally {
+      setActionLoading((m) => {
+        const n = { ...m };
+        delete n[`pkg-${id}`];
+        return n;
+      });
     }
   }
 
@@ -152,8 +173,10 @@ export default function AdminDashboard() {
       { label: "Proveedores no verificados", value: state.proveedores.filter((p) => !p.verificado).length },
       { label: "Sugerencias abiertas", value: state.sugerencias.filter((s) => s.estado === "pendiente").length },
       { label: "Sugerencias totales", value: state.sugerencias.length },
+      { label: "Paquetes totales", value: state.paquetes.length },
+      { label: "Paquetes inactivos", value: state.paquetes.filter((p) => p.estado === "inactivo").length },
     ];
-  }, [state.usuarios, state.sugerencias, state.proveedores]);
+  }, [state.usuarios, state.sugerencias, state.proveedores, state.paquetes]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -333,6 +356,94 @@ export default function AdminDashboard() {
                 </div>
               </article>
             </section>
+
+            <article className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+              <header className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Paquetes</p>
+                  <h2 className="text-xl font-semibold text-slate-900">Listado completo</h2>
+                  <p className="text-sm text-slate-500">Incluye activos, pendientes e inactivos.</p>
+                </div>
+              </header>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="text-slate-500">
+                    <tr>
+                      <th className="px-2 py-2">Título</th>
+                      <th className="px-2 py-2">Estado</th>
+                      <th className="px-2 py-2">Ciudad</th>
+                      <th className="px-2 py-2">Proveedor</th>
+                      <th className="px-2 py-2">Email</th>
+                      <th className="px-2 py-2">Precio</th>
+                      <th className="px-2 py-2">Cupos</th>
+                      <th className="px-2 py-2">Inicio</th>
+                      <th className="px-2 py-2">Fin</th>
+                      <th className="px-2 py-2 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {state.paquetes.map((p) => (
+                      <tr key={p.id}>
+                        <td className="px-2 py-2 text-slate-900">{p.titulo}</td>
+                        <td className="px-2 py-2">
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                              p.estado === "inactivo"
+                                ? "bg-rose-50 text-rose-700"
+                                : p.estado === "pendiente"
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-emerald-50 text-emerald-700"
+                            }`}
+                          >
+                            {p.estado}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 text-slate-600">{p.id_ciudad}</td>
+                        <td className="px-2 py-2 text-slate-900">
+                          {p.proveedor_nombre || p.id_proveedor || "—"}
+                        </td>
+                        <td className="px-2 py-2 text-slate-600">{p.proveedor_email || "—"}</td>
+                        <td className="px-2 py-2 text-slate-900">${p.precio}</td>
+                        <td className="px-2 py-2 text-slate-600">
+                          {p.cupos_ocupados || 0}/{p.cupo_max}
+                        </td>
+                        <td className="px-2 py-2 text-slate-500">
+                          {p.fecha_inicio ? new Date(p.fecha_inicio).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-2 py-2 text-slate-500">
+                          {p.fecha_fin ? new Date(p.fecha_fin).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <div className="flex justify-end gap-2">
+                            {p.estado !== "aprobado" && (
+                              <button
+                                onClick={() => handleEstadoPaquete(p.id, "aprobado")}
+                                disabled={!!actionLoading[`pkg-${p.id}`]}
+                                className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 disabled:opacity-50"
+                              >
+                                {actionLoading[`pkg-${p.id}`] ? "..." : "Aprobar"}
+                              </button>
+                            )}
+                            {p.estado !== "inactivo" && (
+                              <button
+                                onClick={() => handleEstadoPaquete(p.id, "inactivo")}
+                                disabled={!!actionLoading[`pkg-${p.id}`]}
+                                className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 disabled:opacity-50"
+                              >
+                                {actionLoading[`pkg-${p.id}`] ? "..." : "Inactivar"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {state.paquetes.length === 0 && (
+                  <p className="py-3 text-sm text-slate-500">No hay paquetes registrados.</p>
+                )}
+              </div>
+            </article>
           </>
         )}
       </div>
