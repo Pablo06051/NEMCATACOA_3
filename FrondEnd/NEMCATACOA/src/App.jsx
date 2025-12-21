@@ -39,28 +39,32 @@ export default function App() {
 
   if (path === "/login") {
     return (
-      <AuthLayout
-        title=""
-        subtitle=""
-      >
-        <LoginForm onSuccess={() => {
-          const s = getSession();
-          const role = s.user?.rol;
-          if (role === 'proveedor') return (window.location.href = '/proveedor');
-          if (role === 'admin') return (window.location.href = '/admin');
-          if (role === 'usuario') return (window.location.href = '/usuario');
-          return (window.location.href = '/');
-        }} />
+      <AuthLayout title="" subtitle="">
+        <LoginForm
+          onSuccess={() => {
+            const s = getSession();
+            const roleRaw = s.user?.rol;
+            const role = String(roleRaw || "").toLowerCase();
+
+            if (role === "proveedor") return (window.location.href = "/proveedor");
+            if (role === "admin" || role === "administrador") return (window.location.href = "/admin");
+
+            // Alias comunes si el backend usa "cliente" en vez de "usuario"
+            if (role === "usuario" || role === "cliente" || role === "customer") {
+              return (window.location.href = "/usuario");
+            }
+
+            console.warn("Rol no reconocido en token:", roleRaw, s.user);
+            return (window.location.href = "/");
+          }}
+        />
       </AuthLayout>
     );
   }
 
   if (path === "/registro") {
     return (
-      <AuthLayout
-        title=""
-        subtitle=""
-      >
+      <AuthLayout title="" subtitle="">
         <RegistroForm />
       </AuthLayout>
     );
@@ -68,10 +72,7 @@ export default function App() {
 
   if (path === "/registro-proveedor") {
     return (
-      <AuthLayout
-        title=""
-        subtitle=""
-      >
+      <AuthLayout title="" subtitle="">
         <RegistroProveedor />
       </AuthLayout>
     );
@@ -95,7 +96,7 @@ export default function App() {
   }
 
   // Detalle de ciudad administrable: /admin/ciudades/:id (must be checked before the list exact match)
-  if (path.startsWith('/admin/ciudades/') && path !== '/admin/ciudades') {
+  if (path.startsWith("/admin/ciudades/") && path !== "/admin/ciudades") {
     return <AdminCiudad />;
   }
 
@@ -105,15 +106,14 @@ export default function App() {
   }
 
   // Detalle de proveedor administrable: /admin/proveedores/:id
-  if (path.startsWith('/admin/proveedores/')) {
+  if (path.startsWith("/admin/proveedores/")) {
     return <AdminProveedor />;
   }
 
   if (path === "/dashboard") {
-    if (session.user?.rol === "admin") return <AdminDashboard />;
+    if (session.user?.rol === "admin" || session.user?.rol === "administrador") return <AdminDashboard />;
     return <UserDashboard />;
   }
 
   return <HomePage />;
 }
- 
