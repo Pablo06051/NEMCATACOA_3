@@ -5,6 +5,7 @@ import RegistroProveedor from "./components/registroProveedor.jsx";
 import AdminDashboard from "./pages/admin.jsx";
 import UserDashboard from "./pages/user-dashboard.jsx";
 import ProviderDashboard from "./pages/provider-dashboard.jsx";
+import CrearPaquete from "./pages/crear-paquete.jsx";
 import NavbarGeneral from "./components/Navbar_general.jsx";
 import Footer from "./components/Footer.jsx";
 import AdminCiudades from "./pages/admin-ciudades.jsx";
@@ -79,6 +80,10 @@ export default function App() {
 
   if (path === "/usuario") {
     return <UserDashboard />;
+  }
+
+  if (path === "/proveedor/paquetes/crear") {
+    return <CrearPaquete />;
   }
 
   if (path === "/proveedor") {

@@ -1,7 +1,7 @@
 const { query } = require('../../db');
 
 async function listPaquetes(req, res) {
-  const { ciudad, estado, limit = '10', offset = '0' } = req.query;
+  const { ciudad, estado, limit = '10', offset = '0', all } = req.query;
 
   const params = [];
   const where = [];
@@ -11,7 +11,7 @@ async function listPaquetes(req, res) {
     where.push(`p.estado = $${i}`);
     params.push(estado);
     i++;
-  } else {
+  } else if (all !== 'true') {
     where.push("p.estado IN ('activo','aprobado')");
   }
 
@@ -22,14 +22,20 @@ async function listPaquetes(req, res) {
   }
 
   const sql = `
-    SELECT p.*, COALESCE(
-      SUM(CASE WHEN r.estado IN ('reservada','pagada') THEN r.cantidad_personas ELSE 0 END),
-      0
-    ) AS cupos_ocupados
+    SELECT 
+      p.*, 
+      pr.nombre_comercial AS proveedor_nombre,
+      u.email AS proveedor_email,
+      COALESCE(
+        SUM(CASE WHEN r.estado IN ('reservada','pagada') THEN r.cantidad_personas ELSE 0 END),
+        0
+      ) AS cupos_ocupados
     FROM paquete p
     LEFT JOIN reserva r ON r.id_paquete = p.id
+    LEFT JOIN proveedor pr ON pr.id = p.id_proveedor
+    LEFT JOIN usuario u ON u.id = p.id_proveedor
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-    GROUP BY p.id
+    GROUP BY p.id, pr.nombre_comercial, u.email
     ORDER BY p.fecha_creacion DESC
     LIMIT $${i} OFFSET $${i + 1}
   `;
@@ -43,14 +49,20 @@ async function getPaquete(req, res) {
   const { id } = req.params;
 
   const sql = `
-    SELECT p.*, COALESCE(
-      SUM(CASE WHEN r.estado IN ('reservada','pagada') THEN r.cantidad_personas ELSE 0 END),
-      0
-    ) AS cupos_ocupados
+    SELECT 
+      p.*,
+      pr.nombre_comercial AS proveedor_nombre,
+      u.email AS proveedor_email,
+      COALESCE(
+        SUM(CASE WHEN r.estado IN ('reservada','pagada') THEN r.cantidad_personas ELSE 0 END),
+        0
+      ) AS cupos_ocupados
     FROM paquete p
     LEFT JOIN reserva r ON r.id_paquete = p.id
+    LEFT JOIN proveedor pr ON pr.id = p.id_proveedor
+    LEFT JOIN usuario u ON u.id = p.id_proveedor
     WHERE p.id = $1
-    GROUP BY p.id
+    GROUP BY p.id, pr.nombre_comercial, u.email
   `;
 
   const r = await query(sql, [id]);

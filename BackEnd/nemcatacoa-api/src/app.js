@@ -35,7 +35,7 @@ app.use('/paquetes', paquetesRoutes);
 app.use('/', comentariosRoutes);
 app.use('/', usuarioRoutes);
 app.use('/', sugerenciasRoutes);
-app.use('/', adminRoutes);
+app.use('/admin', adminRoutes);
 app.use('/', proveedorRoutes);
 app.use('/', reservasRoutes);
 
