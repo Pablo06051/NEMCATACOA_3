@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiRequest } from "../services/api";
+import { Eye, EyeOff } from "lucide-react";
 
 const initialState = {
   nombres: "",
@@ -14,42 +15,77 @@ const initialState = {
 
 export default function RegistroProveedor({ onSuccess }) {
   const [form, setForm] = useState(initialState);
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: null, message: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const validateField = (name, value) => {
+    let error = "";
+
+    if ((name === "nombres" || name === "apellidos") && !/^[A-Za-zÁÉÍÓÚáéíóúñÑ\s]{2,}$/.test(value)) {
+      error = "Debe contener solo letras y mínimo 2 caracteres.";
+    }
+
+    if (name === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      error = "Correo electrónico no válido.";
+    }
+
+    if (name === "password" && value.length < 8) {
+      error = "La contraseña debe tener mínimo 8 caracteres.";
+    }
+
+    if (name === "confirmPassword" && value !== form.password) {
+      error = "Las contraseñas no coinciden.";
+    }
+
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      setFeedback({ type: "error", message: "Las contraseñas no coinciden." });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const hasErrors = Object.values(errors).some((e) => e);
+    if (hasErrors) {
+      setFeedback({ type: "error", message: "Corrige los errores del formulario." });
       return;
     }
 
     setLoading(true);
     setFeedback({ type: null, message: "" });
+
     try {
-      const { nombres, apellidos, email, password, nombre_comercial, telefono, descripcion } = form;
+      const {
+        nombres,
+        apellidos,
+        email,
+        password,
+        nombre_comercial,
+        telefono,
+        descripcion,
+      } = form;
+
       const data = await apiRequest("/auth/register-proveedor", {
         method: "POST",
         data: { nombres, apellidos, email, password, nombre_comercial, telefono, descripcion },
       });
+
       localStorage.setItem("nemcatacoaToken", data.token);
-      setFeedback({ type: "success", message: "Registro completado. ¡Bienvenido, proveedor!" });
-      setForm(initialState);
+      setFeedback({ type: "success", message: "Registro exitoso. Bienvenido 🎉" });
       onSuccess?.(data);
-      // Redirect to proveedor panel
       window.location.href = "/proveedor";
     } catch (error) {
-      const details = error.payload?.details;
-      let message = error.message === "Email ya registrado" ? error.message : (error.message || "No pudimos crear tu cuenta.");
-      if (details && Array.isArray(details) && details.length > 0) {
-        message = details.map((d) => d.message).join('; ');
-      }
-      setFeedback({ type: "error", message });
+      setFeedback({
+        type: "error",
+        message: error.message || "No fue posible completar el registro.",
+      });
     } finally {
       setLoading(false);
     }
@@ -57,13 +93,21 @@ export default function RegistroProveedor({ onSuccess }) {
 
   return (
     <section className="max-w-lg rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-xl backdrop-blur">
+      {/* PARTE SUPERIOR (NO SE QUITA) */}
       <div className="mb-8 text-center">
-        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Únete a Nemcatacoa</p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Registro proveedor</h1>
-        <p className="mt-2 text-sm text-slate-500">Crea una cuenta para gestionar paquetes y reservas.</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">
+          Únete a Nemcatacoa
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold text-slate-900">
+          Registro proveedor
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Crea una cuenta para gestionar paquetes y reservas.
+        </p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* NOMBRES Y APELLIDOS */}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-medium text-slate-700">
             Nombres
@@ -73,9 +117,11 @@ export default function RegistroProveedor({ onSuccess }) {
               value={form.nombres}
               onChange={handleChange}
               required
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
+              className="mt-2 w-full rounded-2xl border px-4 py-3"
             />
+            {errors.nombres && <p className="text-xs text-rose-600">{errors.nombres}</p>}
           </label>
+
           <label className="text-sm font-medium text-slate-700">
             Apellidos
             <input
@@ -84,11 +130,13 @@ export default function RegistroProveedor({ onSuccess }) {
               value={form.apellidos}
               onChange={handleChange}
               required
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
+              className="mt-2 w-full rounded-2xl border px-4 py-3"
             />
+            {errors.apellidos && <p className="text-xs text-rose-600">{errors.apellidos}</p>}
           </label>
         </div>
 
+        {/* EMAIL */}
         <label className="block text-sm font-medium text-slate-700">
           Correo electrónico
           <input
@@ -97,41 +145,59 @@ export default function RegistroProveedor({ onSuccess }) {
             value={form.email}
             onChange={handleChange}
             required
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
-            placeholder="tu@correo.com"
-            autoComplete="email"
+            className="mt-2 w-full rounded-2xl border px-4 py-3"
           />
+          {errors.email && <p className="text-xs text-rose-600">{errors.email}</p>}
         </label>
 
+        {/* CONTRASEÑAS */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700">
-            Contraseña
+          <div className="relative">
+            <label className="text-sm font-medium text-slate-700">Contraseña</label>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               value={form.password}
               onChange={handleChange}
               required
-              minLength={8}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
-              autoComplete="new-password"
+              className="mt-2 w-full rounded-2xl border px-4 py-3 pr-12"
             />
-          </label>
-          <label className="text-sm font-medium text-slate-700">
-            Confirmar contraseña
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-11 text-slate-500"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            {errors.password && <p className="text-xs text-rose-600">{errors.password}</p>}
+          </div>
+
+          <div className="relative">
+            <label className="text-sm font-medium text-slate-700">
+              Confirmar contraseña
+            </label>
             <input
-              type="password"
+              type={showConfirm ? "text" : "password"}
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
               required
-              minLength={8}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
-              autoComplete="new-password"
+              className="mt-2 w-full rounded-2xl border px-4 py-3 pr-12"
             />
-          </label>
+            <button
+              type="button"
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="absolute right-4 top-11 text-slate-500"
+            >
+              {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            {errors.confirmPassword && (
+              <p className="text-xs text-rose-600">{errors.confirmPassword}</p>
+            )}
+          </div>
         </div>
 
+        {/* RESTO DE CAMPOS */}
         <label className="block text-sm font-medium text-slate-700">
           Nombre comercial
           <input
@@ -140,35 +206,27 @@ export default function RegistroProveedor({ onSuccess }) {
             value={form.nombre_comercial}
             onChange={handleChange}
             required
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
-            placeholder="Nombre de tu empresa"
+            className="mt-2 w-full rounded-2xl border px-4 py-3"
           />
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700">
-            Teléfono
-            <input
-              type="text"
-              name="telefono"
-              value={form.telefono}
-              onChange={handleChange}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
-              placeholder="Opcional"
-            />
-          </label>
-
-          <label className="text-sm font-medium text-slate-700">
-            Descripción
-            <input
-              type="text"
-              name="descripcion"
-              value={form.descripcion}
-              onChange={handleChange}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
-              placeholder="Opcional"
-            />
-          </label>
+          <input
+            type="text"
+            name="telefono"
+            placeholder="Teléfono (opcional)"
+            value={form.telefono}
+            onChange={handleChange}
+            className="rounded-2xl border px-4 py-3"
+          />
+          <input
+            type="text"
+            name="descripcion"
+            placeholder="Descripción (opcional)"
+            value={form.descripcion}
+            onChange={handleChange}
+            className="rounded-2xl border px-4 py-3"
+          />
         </div>
 
         {feedback.message && (
@@ -180,15 +238,10 @@ export default function RegistroProveedor({ onSuccess }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-400 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:translate-y-0.5 disabled:opacity-60"
+          className="w-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-400 px-6 py-3 text-white"
         >
           {loading ? "Creando cuenta..." : "Registrarme como proveedor"}
         </button>
-
-        <p className="text-center text-sm text-slate-500">
-          ¿Ya tienes cuenta?{' '}
-          <a href="/login" className="font-semibold text-sky-600 hover:underline">Inicia sesión</a>
-        </p>
       </form>
     </section>
   );
