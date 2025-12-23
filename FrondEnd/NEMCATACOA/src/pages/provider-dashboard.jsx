@@ -22,13 +22,15 @@ export default function ProviderDashboard() {
 
 
   const [pkgErrors, setPkgErrors] = useState({});
+  const [incluyeInput, setIncluyeInput] = useState("");
+  const [noIncluyeInput, setNoIncluyeInput] = useState("");
   const [editingPkg, setEditingPkg] = useState(null);
   const [pkgForm, setPkgForm] = useState({
     id_ciudad: "",
     titulo: "",
     descripcion: "",
-    incluye: "",
-    no_incluye: "",
+    incluye: [],
+    no_incluye: [],
     precio: "",
     fecha_inicio: "",
     fecha_fin: "",
@@ -36,14 +38,27 @@ export default function ProviderDashboard() {
     imagenes: [],
   });
 
+  const [suggestForm, setSuggestForm] = useState({
+  ciudad: "",
+  ubicacion: "",
+  motivo: "",
+  descripcion: "",
+});
+const [suggestStatus, setSuggestStatus] = useState({
+  loading: false,
+  message: "",
+  error: false,
+});
+
+
   function startEditPackage(pkg) {
     setEditingPkg(pkg);
     setPkgForm({
       id_ciudad: pkg.id_ciudad,
       titulo: pkg.titulo,
       descripcion: pkg.descripcion || "",
-      incluye: pkg.incluye ? JSON.stringify(pkg.incluye) : "",
-      no_incluye: pkg.no_incluye ? JSON.stringify(pkg.no_incluye) : "",
+      incluye: Array.isArray(pkg.incluye) ? pkg.incluye : [],
+      no_incluye: Array.isArray(pkg.no_incluye) ? pkg.no_incluye : [],
       precio: pkg.precio || "",
       fecha_inicio: pkg.fecha_inicio || "",
       fecha_fin: pkg.fecha_fin || "",
@@ -71,8 +86,8 @@ export default function ProviderDashboard() {
         id_ciudad: pkgForm.id_ciudad,
         titulo: pkgForm.titulo,
         descripcion: pkgForm.descripcion || null,
-        incluye: pkgForm.incluye ? JSON.parse(pkgForm.incluye) : null,
-        no_incluye: pkgForm.no_incluye ? JSON.parse(pkgForm.no_incluye) : null,
+        incluye: pkgForm.incluye,
+        no_incluye: pkgForm.no_incluye,
         precio: Number(pkgForm.precio),
         fecha_inicio: pkgForm.fecha_inicio || null,
         fecha_fin: pkgForm.fecha_fin || null,
@@ -87,6 +102,21 @@ export default function ProviderDashboard() {
       setStatus({ loading: false, message: err.message || "No se pudo actualizar el paquete", error: true });
     }
   }
+
+  function addTag(field, value, setValue) {
+  const trimmed = value.trim();
+  if (!trimmed) return;
+  setPkgForm((p) => {
+    if (p[field].includes(trimmed)) return p;
+    return { ...p, [field]: [...p[field], trimmed] };
+  });
+  setValue("");
+}
+
+function removeTag(field, value) {
+  setPkgForm((p) => ({ ...p, [field]: p[field].filter((v) => v !== value) }));
+}
+
 
 
 
@@ -132,6 +162,37 @@ export default function ProviderDashboard() {
     }
   }
 
+  function handleSuggestChange(e) {
+  const { name, value } = e.target;
+  setSuggestForm((s) => ({ ...s, [name]: value }));
+}
+
+async function handleSuggestSubmit(e) {
+  e.preventDefault();
+  setSuggestStatus({ loading: true, message: "", error: false });
+
+  if (!suggestForm.ciudad.trim() || !suggestForm.ubicacion.trim() || !suggestForm.motivo.trim() || !suggestForm.descripcion.trim()) {
+    setSuggestStatus({ loading: false, message: "Completa todos los campos.", error: true });
+    return;
+  }
+
+  try {
+    const { token } = getSession();
+    const payload = {
+      ciudad: suggestForm.ciudad.trim(),
+      nombre_lugar: suggestForm.ubicacion.trim(),
+      descripcion: `Motivo: ${suggestForm.motivo.trim()}\nDescripción: ${suggestForm.descripcion.trim()}`,
+    };
+
+    await apiRequest("/sugerencias", { method: "POST", token, data: payload });
+    setSuggestStatus({ loading: false, message: "Sugerencia enviada.", error: false });
+    setSuggestForm({ ciudad: "", ubicacion: "", motivo: "", descripcion: "" });
+  } catch (err) {
+    setSuggestStatus({ loading: false, message: err.message || "No se pudo enviar la sugerencia.", error: true });
+  }
+}
+
+
   function handlePkgChange(e) {
     const { name, value } = e.target;
     setPkgForm((p) => ({ ...p, [name]: value }));
@@ -143,12 +204,9 @@ export default function ProviderDashboard() {
     if (!pkgForm.titulo || pkgForm.titulo.trim().length < 3) errors.titulo = 'El título debe tener al menos 3 caracteres.';
     if (pkgForm.precio === '' || isNaN(Number(pkgForm.precio)) || Number(pkgForm.precio) < 0) errors.precio = 'Precio inválido.';
     if (pkgForm.cupo_max === '' || isNaN(Number(pkgForm.cupo_max)) || Number(pkgForm.cupo_max) <= 0) errors.cupo_max = 'Cupo máximo inválido.';
-    if (pkgForm.incluye) {
-      try { JSON.parse(pkgForm.incluye); } catch { errors.incluye = 'Formato JSON inválido en "Incluye".'; }
-    }
-    if (pkgForm.no_incluye) {
-      try { JSON.parse(pkgForm.no_incluye); } catch { errors.no_incluye = 'Formato JSON inválido en "No incluye".'; }
-    }
+    if (!pkgForm.incluye.length) errors.incluye = 'Incluye es obligatorio.';
+    if (!pkgForm.no_incluye.length) errors.no_incluye = 'No incluye es obligatorio.';
+
     if (pkgForm.imagenes && pkgForm.imagenes.length) {
       const imgs = Array.isArray(pkgForm.imagenes) ? pkgForm.imagenes : pkgForm.imagenes.split(',').map(s => s.trim()).filter(Boolean);
       const bad = imgs.find(u => !( /^https?:\/\//.test(u) || /^data:image\/.+;base64,/.test(u) ));
@@ -275,10 +333,71 @@ export default function ProviderDashboard() {
               </div>
 
               <label className="text-sm font-medium text-slate-700">
-                Incluye (JSON)
-                <textarea name="incluye" value={pkgForm.incluye} onChange={handlePkgChange} rows={2} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400" placeholder='Ej: ["Transporte","Hospedaje"]' />
-                {pkgErrors.incluye && <p className="text-rose-600 text-sm mt-1">{pkgErrors.incluye}</p>}
-              </label>
+  Incluye
+  <div className="mt-2 flex gap-2">
+    <input
+      type="text"
+      value={incluyeInput}
+      onChange={(e) => setIncluyeInput(e.target.value)}
+      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
+      placeholder="Ej: Hospedaje"
+    />
+    <button
+      type="button"
+      onClick={() => addTag("incluye", incluyeInput, setIncluyeInput)}
+      className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+    >
+      Agregar
+    </button>
+  </div>
+  {pkgErrors.incluye && <p className="text-rose-600 text-sm mt-1">{pkgErrors.incluye}</p>}
+  {pkgForm.incluye.length > 0 && (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {pkgForm.incluye.map((tag) => (
+        <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+          {tag}
+          <button type="button" onClick={() => removeTag("incluye", tag)} className="ml-2 text-slate-500">
+            x
+          </button>
+        </span>
+      ))}
+    </div>
+  )}
+</label>
+              <label className="text-sm font-medium text-slate-700">
+  No incluye
+  <div className="mt-2 flex gap-2">
+    <input
+      type="text"
+      value={noIncluyeInput}
+      onChange={(e) => setNoIncluyeInput(e.target.value)}
+      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-slate-400"
+      placeholder="Ej: Bebidas alcohólicas"
+    />
+    <button
+      type="button"
+      onClick={() => addTag("no_incluye", noIncluyeInput, setNoIncluyeInput)}
+      className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+    >
+      Agregar
+    </button>
+  </div>
+  {pkgErrors.no_incluye && <p className="text-rose-600 text-sm mt-1">{pkgErrors.no_incluye}</p>}
+  {pkgForm.no_incluye.length > 0 && (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {pkgForm.no_incluye.map((tag) => (
+        <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+          {tag}
+          <button type="button" onClick={() => removeTag("no_incluye", tag)} className="ml-2 text-slate-500">
+            x
+          </button>
+        </span>
+      ))}
+    </div>
+  )}
+</label>
+
+
 
               <label className="text-sm font-medium text-slate-700">
                 Imágenes (sube archivos)
@@ -308,88 +427,143 @@ export default function ProviderDashboard() {
               </div>
             </form>
           ) : (
-            <div className="mt-6 grid gap-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">Tus paquetes</h3>
-                  <p className="text-sm text-slate-500">Lista de paquetes creados por ti.</p>
-                </div>
-                <button onClick={() => (window.location.href = '/proveedor/paquetes/crear')} className="rounded-full bg-sky-600 text-white px-4 py-2 text-sm">Crear paquete</button>
-              </div>
+           <div className="mt-6 grid gap-6 lg:grid-cols-2">
+  {/* Columna paquetes */}
+  <div>
+    <div className="flex items-center justify-between">
+      <div>
+        <h3 className="text-lg font-semibold">Tus paquetes</h3>
+        <p className="text-sm text-slate-500">Lista de paquetes creados por ti.</p>
+      </div>
+      <button onClick={() => (window.location.href = '/proveedor/paquetes/crear')} className="rounded-full bg-sky-600 text-white px-4 py-2 text-sm">Crear paquete</button>
+    </div>
 
-              {loadingPackages ? (
-                <p>Cargando paquetes...</p>
-              ) : packages.length === 0 ? (
-                <p className="text-sm text-slate-500">No tienes paquetes aún.</p>
+    <div className="mt-6 grid gap-4">
+      {loadingPackages ? (
+        <p>Cargando paquetes...</p>
+      ) : packages.length === 0 ? (
+        <p className="text-sm text-slate-500">No tienes paquetes aún.</p>
+      ) : (
+        packages.map((p) => (
+          <div key={p.id} className="rounded-2xl border border-slate-200 p-4 flex items-center gap-4">
+            <div className="w-28 h-20 rounded-lg overflow-hidden bg-slate-100">
+              {p.imagenes && p.imagenes[0] ? (
+                <img src={p.imagenes[0]} alt={p.titulo} className="w-full h-full object-cover" />
               ) : (
-                packages.map((p) => (
-                  <div key={p.id} className="rounded-2xl border border-slate-200 p-4 flex items-center gap-4">
-                    <div className="w-28 h-20 rounded-lg overflow-hidden bg-slate-100">
-                      {p.imagenes && p.imagenes[0] ? (
-                        <img src={p.imagenes[0]} alt={p.titulo} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400">No image</div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900">{p.titulo}</p>
-                      <p className="text-sm text-slate-500">{p.id_ciudad} · {p.estado}</p>
-                      <p className="text-sm text-slate-700 font-medium mt-1">${p.precio}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => startEditPackage(p)} className="rounded-full border px-3 py-2 text-sm">Editar</button>
-                      <button onClick={() => deactivatePackage(p.id)} className="rounded-full bg-rose-600 text-white px-3 py-2 text-sm">Desactivar</button>
-                    </div>
-                  </div>
-                ))
+                <div className="w-full h-full flex items-center justify-center text-slate-400">No image</div>
               )}
             </div>
+            <div className="flex-1">
+              <p className="font-semibold text-slate-900">{p.titulo}</p>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>{p.id_ciudad}</span>
+                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${p.estado === 'inactivo' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {p.estado}
+                </span>
+              </div>
+              <p className="text-sm text-slate-700 font-medium mt-1">${p.precio}</p>
+              {(p.fecha_inicio || p.fecha_fin) && (
+                <p className="text-xs text-slate-500 mt-1">
+                  {p.fecha_inicio ? `Inicio: ${new Date(p.fecha_inicio).toLocaleDateString()}` : 'Sin inicio'}
+                  {" · "}
+                  {p.fecha_fin ? `Fin: ${new Date(p.fecha_fin).toLocaleDateString()}` : 'Sin fin'}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => startEditPackage(p)} className="rounded-full border px-3 py-2 text-sm">Editar</button>
+              {p.estado === 'inactivo' ? (
+                <button onClick={() => reactivatePackage(p.id)} className="rounded-full bg-emerald-600 text-white px-3 py-2 text-sm">Reactivar</button>
+              ) : (
+                <button onClick={() => deactivatePackage(p.id)} className="rounded-full bg-rose-600 text-white px-3 py-2 text-sm">Desactivar</button>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+
+  {/* Columna sugerencias */}
+  <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+    <div className="mb-4">
+      <h3 className="text-lg font-semibold text-slate-900">Sugerir nueva ciudad</h3>
+      <p className="text-sm text-slate-500">
+        Propón ciudades nuevas para incluir en futuros paquetes.
+      </p>
+    </div>
+
+    <form onSubmit={handleSuggestSubmit} className="grid gap-4">
+      <label className="text-sm font-medium text-slate-700">
+        Nombre de la ciudad
+        <input
+          name="ciudad"
+          value={suggestForm.ciudad}
+          onChange={handleSuggestChange}
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          required
+        />
+      </label>
+
+      <label className="text-sm font-medium text-slate-700">
+        Ubicación exacta
+        <input
+          name="ubicacion"
+          value={suggestForm.ubicacion}
+          onChange={handleSuggestChange}
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          placeholder="Ej: Sector, barrio, dirección o punto de referencia"
+          required
+        />
+      </label>
+
+      <label className="text-sm font-medium text-slate-700">
+        Motivo
+        <input
+          name="motivo"
+          value={suggestForm.motivo}
+          onChange={handleSuggestChange}
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          placeholder="Ej: alta demanda de turistas"
+          required
+        />
+      </label>
+
+      <label className="text-sm font-medium text-slate-700">
+        Descripción
+        <textarea
+          name="descripcion"
+          value={suggestForm.descripcion}
+          onChange={handleSuggestChange}
+          rows={3}
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          placeholder="Detalles adicionales sobre la propuesta"
+          required
+        />
+      </label>
+
+      {suggestStatus.message && (
+        <p className={`text-sm ${suggestStatus.error ? "text-rose-600" : "text-emerald-600"}`}>
+          {suggestStatus.message}
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={suggestStatus.loading}
+          className="rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white"
+        >
+          {suggestStatus.loading ? "Enviando..." : "Enviar sugerencia"}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
           )}
 
-          <div className="mt-6 grid gap-4">
-            {loadingPackages ? (
-              <p>Cargando paquetes...</p>
-            ) : packages.length === 0 ? (
-              <p className="text-sm text-slate-500">No tienes paquetes aún.</p>
-            ) : (
-              packages.map((p) => (
-                <div key={p.id} className="rounded-2xl border border-slate-200 p-4 flex items-center gap-4">
-                  <div className="w-28 h-20 rounded-lg overflow-hidden bg-slate-100">
-                    {p.imagenes && p.imagenes[0] ? (
-                      <img src={p.imagenes[0]} alt={p.titulo} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">No image</div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-900">{p.titulo}</p>
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <span>{p.id_ciudad}</span>
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${p.estado === 'inactivo' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {p.estado}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-700 font-medium mt-1">${p.precio}</p>
-                    {(p.fecha_inicio || p.fecha_fin) && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {p.fecha_inicio ? `Inicio: ${new Date(p.fecha_inicio).toLocaleDateString()}` : 'Sin inicio'}
-                        {" · "}
-                        {p.fecha_fin ? `Fin: ${new Date(p.fecha_fin).toLocaleDateString()}` : 'Sin fin'}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => startEditPackage(p)} className="rounded-full border px-3 py-2 text-sm">Editar</button>
-                    {p.estado === 'inactivo' ? (
-                      <button onClick={() => reactivatePackage(p.id)} className="rounded-full bg-emerald-600 text-white px-3 py-2 text-sm">Reactivar</button>
-                    ) : (
-                      <button onClick={() => deactivatePackage(p.id)} className="rounded-full bg-rose-600 text-white px-3 py-2 text-sm">Desactivar</button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+
         </section>
 
       </main>

@@ -14,8 +14,11 @@ function fileListToDataUrls(files) {
 }
 
 export default function CrearPaquete() {
-  const [pkgForm, setPkgForm] = useState({ id_ciudad: "", titulo: "", descripcion: "", incluye: "", no_incluye: "", precio: "", fecha_inicio: "", fecha_fin: "", cupo_max: "", imagenes: [] });
+  const [pkgForm, setPkgForm] = useState({ id_ciudad: "", titulo: "", descripcion: "", incluye: [], no_incluye: [], precio: "", fecha_inicio: "", fecha_fin: "", cupo_max: "", imagenes: [] });
   const [pkgErrors, setPkgErrors] = useState({});
+  const [incluyeInput, setIncluyeInput] = useState("");
+const [noIncluyeInput, setNoIncluyeInput] = useState("");
+
   const [status, setStatus] = useState({ loading: false, message: "", error: false });
   const [cities, setCities] = useState([]);
   const [{ isProveedor, checkedSession }, setAuthState] = useState({ isProveedor: false, checkedSession: false });
@@ -69,6 +72,11 @@ export default function CrearPaquete() {
     if (endDate && endDate > maxDate) {
       errors.fecha_fin = 'La fecha de fin no puede superar un año desde hoy.';
     }
+
+    if (!pkgForm.incluye.length) errors.incluye = 'Incluye es obligatorio.';
+if (!pkgForm.no_incluye.length) errors.no_incluye = 'No incluye es obligatorio.';
+
+    
     setPkgErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -84,6 +92,20 @@ export default function CrearPaquete() {
     }
   }
 
+  function addTag(field, value, setValue) {
+  const trimmed = value.trim();
+  if (!trimmed) return;
+  setPkgForm((p) => {
+    if (p[field].includes(trimmed)) return p;
+    return { ...p, [field]: [...p[field], trimmed] };
+  });
+  setValue("");
+}
+
+function removeTag(field, value) {
+  setPkgForm((p) => ({ ...p, [field]: p[field].filter((v) => v !== value) }));
+}
+
   async function handleCreatePackage(e) {
     e.preventDefault();
     const { token } = getSession();
@@ -94,8 +116,8 @@ export default function CrearPaquete() {
         id_ciudad: pkgForm.id_ciudad,
         titulo: pkgForm.titulo,
         descripcion: pkgForm.descripcion || null,
-        incluye: pkgForm.incluye ? JSON.parse(pkgForm.incluye) : null,
-        no_incluye: pkgForm.no_incluye ? JSON.parse(pkgForm.no_incluye) : null,
+        incluye: pkgForm.incluye || [],
+        no_incluye: pkgForm.no_incluye || [],
         precio: Number(pkgForm.precio),
         fecha_inicio: pkgForm.fecha_inicio || null,
         fecha_fin: pkgForm.fecha_fin || null,
@@ -153,6 +175,74 @@ export default function CrearPaquete() {
             <label className="text-sm font-medium text-slate-700">Descripción
               <textarea name="descripcion" value={pkgForm.descripcion} onChange={handlePkgChange} rows={3} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </label>
+
+                        <label className="text-sm font-medium text-slate-700">
+              Incluye
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={incluyeInput}
+                  onChange={(e) => setIncluyeInput(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                  placeholder="Ej: Hospedaje"
+                />
+                <button
+                  type="button"
+                  onClick={() => addTag("incluye", incluyeInput, setIncluyeInput)}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Agregar
+                </button>
+              </div>
+              {pkgErrors.incluye && <p className="text-rose-600 text-sm mt-1">{pkgErrors.incluye}</p>}
+              {pkgForm.incluye.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {pkgForm.incluye.map((tag) => (
+                    <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {tag}
+                      <button type="button" onClick={() => removeTag("incluye", tag)} className="ml-2 text-slate-500">
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </label>
+
+            <label className="text-sm font-medium text-slate-700">
+              No incluye
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={noIncluyeInput}
+                  onChange={(e) => setNoIncluyeInput(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+                  placeholder="Ej: Bebidas alcohólicas"
+                />
+                <button
+                  type="button"
+                  onClick={() => addTag("no_incluye", noIncluyeInput, setNoIncluyeInput)}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Agregar
+                </button>
+              </div>
+              {pkgErrors.no_incluye && <p className="text-rose-600 text-sm mt-1">{pkgErrors.no_incluye}</p>}
+              {pkgForm.no_incluye.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {pkgForm.no_incluye.map((tag) => (
+                    <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {tag}
+                      <button type="button" onClick={() => removeTag("no_incluye", tag)} className="ml-2 text-slate-500">
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </label>
+
+            
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm font-medium text-slate-700">Precio <span className="text-rose-600">*</span>

@@ -9,6 +9,8 @@ async function myPackages(req, res) {
 }
 
 async function createPackage(req, res) {
+
+
   // Debug: mostrar información mínima de usuario y headers al recibir la petición
   try {
     console.log('[proveedor.createPackage] req.user:', { id: req.user?.id, email: req.user?.email, rol: req.user?.rol });
@@ -18,20 +20,24 @@ async function createPackage(req, res) {
   }
 
   const p = req.body;
+
+
+  const incluye = JSON.stringify(p.incluye || []);
+  const noIncluye = JSON.stringify(p.no_incluye || []);
   const r = await query(
     `INSERT INTO paquete (
        id_proveedor, id_ciudad, titulo, descripcion, incluye, no_incluye,
        precio, fecha_inicio, fecha_fin, cupo_max, imagenes, estado
      )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'pendiente')
+    VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10,$11,'pendiente')
      RETURNING *`,
     [
       req.user.id,
       p.id_ciudad,
       p.titulo,
       p.descripcion || null,
-      p.incluye || null,
-      p.no_incluye || null,
+      incluye,
+      noIncluye,
       p.precio,
       p.fecha_inicio || null,
       p.fecha_fin || null,
@@ -47,13 +53,17 @@ async function updatePackage(req, res) {
   const { id } = req.params;
   const p = req.body;
 
+  const incluye = JSON.stringify(p.incluye || []);
+  const noIncluye = JSON.stringify(p.no_incluye || []);
+
+
   const r = await query(
     `UPDATE paquete SET
        id_ciudad = $1,
        titulo = $2,
        descripcion = $3,
-       incluye = $4,
-       no_incluye = $5,
+       incluye = $4::jsonb,
+       no_incluye = $5::jsonb,
        precio = $6,
        fecha_inicio = $7,
        fecha_fin = $8,
@@ -66,8 +76,8 @@ async function updatePackage(req, res) {
       p.id_ciudad,
       p.titulo,
       p.descripcion || null,
-      p.incluye || null,
-      p.no_incluye || null,
+      incluye,
+      noIncluye,
       p.precio,
       p.fecha_inicio || null,
       p.fecha_fin || null,

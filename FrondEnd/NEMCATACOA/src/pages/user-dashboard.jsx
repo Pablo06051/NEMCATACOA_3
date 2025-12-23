@@ -495,8 +495,11 @@ export default function UserDashboard() {
                 </div>
               </div>
             </SectionCard>
+            
           </div>
-        )}
+          
+        )}     
+          
       </main>
 
       <Footer />
