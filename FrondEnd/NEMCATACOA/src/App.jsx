@@ -12,6 +12,7 @@ import AdminCiudades from "./pages/admin-ciudades.jsx";
 import AdminProveedor from "./pages/admin-proveedor.jsx";
 import AdminCiudad from "./pages/admin-ciudad.jsx";
 import { getSession } from "./services/session.js";
+import ReservaPaquete from "./pages/reserva-paquete.jsx";
 
 function AuthLayout({ children, title, subtitle }) {
   return (
@@ -32,6 +33,8 @@ function AuthLayout({ children, title, subtitle }) {
     </div>
   );
 }
+
+
 
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
@@ -114,6 +117,11 @@ export default function App() {
     if (session.user?.rol === "admin" || session.user?.rol === "administrador") return <AdminDashboard />;
     return <UserDashboard />;
   }
+
+  if (path === "/usuario/reserva") {
+  return <ReservaPaquete />;
+}
+
 
   return <HomePage />;
 }

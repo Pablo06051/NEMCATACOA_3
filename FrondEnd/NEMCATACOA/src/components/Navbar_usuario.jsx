@@ -5,7 +5,6 @@ const navLinks = [
   { name: "Panel", href: "/usuario" },
   { name: "Favoritos", href: "#favoritos" },
   { name: "Historial", href: "#historial" },
-  { name: "Explorar", href: "/#destinos" },
 ];
 
 export default function NavbarUsuario() {

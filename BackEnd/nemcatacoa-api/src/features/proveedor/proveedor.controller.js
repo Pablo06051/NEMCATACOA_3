@@ -24,12 +24,13 @@ async function createPackage(req, res) {
 
   const incluye = JSON.stringify(p.incluye || []);
   const noIncluye = JSON.stringify(p.no_incluye || []);
-  const r = await query(
+    const r = await query(
     `INSERT INTO paquete (
        id_proveedor, id_ciudad, titulo, descripcion, incluye, no_incluye,
-       precio, fecha_inicio, fecha_fin, cupo_max, imagenes, estado
+       precio, fecha_inicio, fecha_fin, cupo_max, imagenes, estado,
+       punto_recogida, hora_recogida
      )
-    VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10,$11,'pendiente')
+     VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10,$11,'pendiente',$12,$13)
      RETURNING *`,
     [
       req.user.id,
@@ -43,8 +44,11 @@ async function createPackage(req, res) {
       p.fecha_fin || null,
       p.cupo_max,
       p.imagenes || [],
+      p.punto_recogida || null,
+      p.hora_recogida || null,
     ]
   );
+
 
   res.status(201).json(r.rows[0]);
 }
@@ -69,8 +73,10 @@ async function updatePackage(req, res) {
        fecha_fin = $8,
        cupo_max = $9,
        imagenes = $10,
+       punto_recogida = $11,
+        hora_recogida = $12,
        fecha_actualizacion = CURRENT_TIMESTAMP
-     WHERE id = $11 AND id_proveedor = $12
+     WHERE id = $13 AND id_proveedor = $14
      RETURNING *`,
     [
       p.id_ciudad,
@@ -83,8 +89,11 @@ async function updatePackage(req, res) {
       p.fecha_fin || null,
       p.cupo_max,
       p.imagenes || [],
+      p.punto_recogida || null,
+      p.hora_recogida || null,
       id,
       req.user.id,
+      
     ]
   );
 

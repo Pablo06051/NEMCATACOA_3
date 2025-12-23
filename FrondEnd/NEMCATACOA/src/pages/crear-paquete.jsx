@@ -14,7 +14,7 @@ function fileListToDataUrls(files) {
 }
 
 export default function CrearPaquete() {
-  const [pkgForm, setPkgForm] = useState({ id_ciudad: "", titulo: "", descripcion: "", incluye: [], no_incluye: [], precio: "", fecha_inicio: "", fecha_fin: "", cupo_max: "", imagenes: [] });
+  const [pkgForm, setPkgForm] = useState({ id_ciudad: "", titulo: "", descripcion: "", incluye: [], no_incluye: [], precio: "", fecha_inicio: "", fecha_fin: "", cupo_max: "", imagenes: [], punto_recogida: "", hora_recogida: "" });
   const [pkgErrors, setPkgErrors] = useState({});
   const [incluyeInput, setIncluyeInput] = useState("");
 const [noIncluyeInput, setNoIncluyeInput] = useState("");
@@ -123,7 +123,10 @@ function removeTag(field, value) {
         fecha_fin: pkgForm.fecha_fin || null,
         cupo_max: Number(pkgForm.cupo_max),
         imagenes: Array.isArray(pkgForm.imagenes) ? pkgForm.imagenes : (pkgForm.imagenes ? pkgForm.imagenes.split(",").map(s => s.trim()).filter(Boolean) : []),
+        punto_recogida: pkgForm.punto_recogida || null,
+        hora_recogida: pkgForm.hora_recogida || null,
       };
+
       await apiRequest("/proveedor/paquetes", { method: "POST", data: payload, token });
       setStatus({ loading: false, message: "Paquete creado", error: false });
       // Redirect back to provider panel
@@ -176,8 +179,9 @@ function removeTag(field, value) {
               <textarea name="descripcion" value={pkgForm.descripcion} onChange={handlePkgChange} rows={3} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </label>
 
-                        <label className="text-sm font-medium text-slate-700">
-              Incluye
+                      <label className="text-sm font-medium text-slate-700">
+                       Incluye <span className="text-rose-600">*</span>
+
               <div className="mt-2 flex gap-2">
                 <input
                   type="text"
@@ -209,8 +213,9 @@ function removeTag(field, value) {
               )}
             </label>
 
-            <label className="text-sm font-medium text-slate-700">
-              No incluye
+              <label className="text-sm font-medium text-slate-700">
+              No incluye <span className="text-rose-600">*</span>
+
               <div className="mt-2 flex gap-2">
                 <input
                   type="text"
@@ -285,6 +290,17 @@ function removeTag(field, value) {
                 {pkgErrors.fecha_fin && <p className="text-rose-600 text-sm mt-1">{pkgErrors.fecha_fin}</p>}
               </label>
             </div>
+
+            <label className="text-sm font-medium text-slate-700">
+               Punto de recogida
+               <input name="punto_recogida" value={pkgForm.punto_recogida} onChange={handlePkgChange} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
+            </label>
+
+            <label className="text-sm font-medium text-slate-700">
+               Hora de recogida
+               <input name="hora_recogida" value={pkgForm.hora_recogida} onChange={handlePkgChange} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Ej: 08:00 AM" />
+            </label>
+
 
             <label className="text-sm font-medium text-slate-700">Imágenes
               <input type="file" accept="image/*" multiple onChange={handleFilesChange} className="mt-2 w-full" />

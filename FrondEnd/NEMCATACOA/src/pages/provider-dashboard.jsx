@@ -36,6 +36,8 @@ export default function ProviderDashboard() {
     fecha_fin: "",
     cupo_max: "",
     imagenes: [],
+    punto_recogida: "",
+    hora_recogida: "",
   });
 
   const [suggestForm, setSuggestForm] = useState({
@@ -64,6 +66,8 @@ const [suggestStatus, setSuggestStatus] = useState({
       fecha_fin: pkg.fecha_fin || "",
       cupo_max: pkg.cupo_max || "",
       imagenes: pkg.imagenes || [],
+      punto_recogida: pkg.punto_recogida || "",
+      hora_recogida: pkg.hora_recogida || "",
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -93,6 +97,8 @@ const [suggestStatus, setSuggestStatus] = useState({
         fecha_fin: pkgForm.fecha_fin || null,
         cupo_max: Number(pkgForm.cupo_max),
         imagenes: Array.isArray(pkgForm.imagenes) ? pkgForm.imagenes : (pkgForm.imagenes ? pkgForm.imagenes.split(",").map(s => s.trim()).filter(Boolean) : []),
+        punto_recogida: pkgForm.punto_recogida || null,
+        hora_recogida: pkgForm.hora_recogida || null,
       };
       const updated = await apiRequest(`/proveedor/paquetes/${editingPkg.id}`, { method: "PUT", data: payload, token });
       setStatus({ loading: false, message: "Paquete actualizado", error: false });
@@ -333,7 +339,8 @@ async function handleSuggestSubmit(e) {
               </div>
 
               <label className="text-sm font-medium text-slate-700">
-  Incluye
+  Incluye <span className="text-rose-600">*</span>
+
   <div className="mt-2 flex gap-2">
     <input
       type="text"
@@ -364,8 +371,9 @@ async function handleSuggestSubmit(e) {
     </div>
   )}
 </label>
-              <label className="text-sm font-medium text-slate-700">
-  No incluye
+          <label className="text-sm font-medium text-slate-700">
+  No incluye <span className="text-rose-600">*</span>
+
   <div className="mt-2 flex gap-2">
     <input
       type="text"
@@ -396,6 +404,17 @@ async function handleSuggestSubmit(e) {
     </div>
   )}
 </label>
+
+<label className="text-sm font-medium text-slate-700">
+  Punto de recogida
+  <input name="punto_recogida" value={pkgForm.punto_recogida} onChange={handlePkgChange} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" />
+</label>
+
+<label className="text-sm font-medium text-slate-700">
+  Hora de recogida
+  <input name="hora_recogida" value={pkgForm.hora_recogida} onChange={handlePkgChange} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Ej: 08:00 AM" />
+</label>
+
 
 
 

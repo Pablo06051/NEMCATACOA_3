@@ -11,6 +11,9 @@ const paqueteSchema = Joi.object({
   fecha_fin: Joi.date().allow(null),
   cupo_max: Joi.number().integer().min(1).required(),
   imagenes: Joi.array().items(Joi.string()).default([]),
+  punto_recogida: Joi.string().allow('', null),
+  hora_recogida: Joi.string().allow('', null),
+
 });
 
 module.exports = { paqueteSchema };

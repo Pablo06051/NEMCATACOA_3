@@ -59,6 +59,7 @@ function PackageCard({
   onTogglePackageFavorite,
   isCityFavorite,
   isPackageFavorite,
+  isReserved,
 }) {
   const cuposDisponibles = Math.max(
     0,
@@ -109,11 +110,12 @@ function PackageCard({
         <div className="mt-auto flex flex-wrap items-center gap-2">
           <button
             className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-            disabled={cuposDisponibles <= 0}
+            disabled={cuposDisponibles <= 0 || isReserved}
             onClick={() => onReserve(paquete.id)}
-          >
-            Reservar ahora
-          </button>
+            >
+            {isReserved ? "Reservado" : "Reservar"}
+           </button>
+
           <button
             type="button"
             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
@@ -142,35 +144,53 @@ function PackageCard({
   );
 }
 
-function ReservaItem({ reserva, onCancel }) {
+function ReservaItem({ reserva, onCancel, onInfo }) {
   return (
     <li className="rounded-2xl border border-slate-100 bg-white/80 p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <p className="text-base font-semibold text-slate-900">{reserva.titulo}</p>
           <p className="text-sm text-slate-500">
-            Cantidad: {reserva.cantidad_personas} · {reserva.fecha ? new Date(reserva.fecha).toLocaleString() : "Sin fecha"}
+            Cantidad: {reserva.cantidad_personas} ·{" "}
+            {reserva.fecha ? new Date(reserva.fecha).toLocaleString() : "Sin fecha"}
           </p>
           <StatusBadge value={reserva.estado} />
         </div>
-        {reserva.estado === "reservada" && (
-          <button
-            onClick={() => onCancel(reserva.id)}
-            className="self-start rounded-full bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
-          >
-            Cancelar
-          </button>
-        )}
+
+       <div className="flex gap-2">
+  {onInfo && (
+    <button
+      onClick={() => onInfo(reserva)}
+      className="self-start rounded-full border px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+    >
+      Info
+    </button>
+  )}
+
+  {reserva.estado === "reservada" && (
+    <button
+      onClick={() => onCancel(reserva.id)}
+      className="self-start rounded-full bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+    >
+      Cancelar
+    </button>
+  )}
+</div>
       </div>
     </li>
   );
 }
+
 
 export default function UserDashboard() {
   const [paquetes, setPaquetes] = useState([]);
   const [misReservas, setMisReservas] = useState([]);
   const [favoritos, setFavoritos] = useState([]);
   const [historial, setHistorial] = useState([]);
+  const [infoReserva, setInfoReserva] = useState(null);
+  const [infoPaquete, setInfoPaquete] = useState(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+
   const [favoritePackages, setFavoritePackages] = useState(() => {
     const stored = localStorage.getItem("nemcatacoaPackageFavs");
     try {
@@ -235,32 +255,24 @@ export default function UserDashboard() {
     return groups;
   }, [misReservas]);
 
+
+  const reservedPackageIds = new Set(
+  misReservas
+    .filter((r) => ["reservada", "pagada"].includes(r.estado))
+    .map((r) => r.id_paquete)
+);
+
+
+  const historialReservas = useMemo(() => {
+  return misReservas.filter((r) => ["pagada", "terminada"].includes(r.estado));
+}, [misReservas]);
+
   const favoritePackageCards = paquetes.filter((p) => favoritePackages.includes(p.id));
   const isCityFavorite = (cityId) => favoritos.some((f) => f.id_ciudad === cityId);
 
-  const handleReservar = async (id_paquete) => {
-    try {
-      const { token } = getSession();
-      if (!token) {
-        setError("Inicia sesión para reservar.");
-        return;
-      }
-
-      await apiRequest("/reservas", {
-        method: "POST",
-        token,
-        data: { id_paquete, cantidad_personas: 1 },
-      });
-
-      const updated = await apiRequest("/reservas/mias", { token });
-      setMisReservas(updated || []);
-      setError(null);
-      setReservaTab("pendiente");
-    } catch (e) {
-      setError(e.message || "No se pudo realizar la reserva");
-    }
-  };
-
+ const handleReservar = (id_paquete) => {
+  window.location.href = `/usuario/reserva?id=${id_paquete}`;
+};
   const handleCancelar = async (reservaId) => {
     try {
       const { token } = getSession();
@@ -281,6 +293,27 @@ export default function UserDashboard() {
       setError(e.message || "No se pudo cancelar la reserva");
     }
   };
+
+   const openReservaInfo = async (reserva) => {
+  setInfoReserva(reserva);
+  setInfoPaquete(null);
+  setInfoLoading(true);
+
+  try {
+    const found = paquetes.find((p) => p.id === reserva.id_paquete);
+    if (found) {
+      setInfoPaquete(found);
+    } else {
+      const data = await apiRequest(`/paquetes/${reserva.id_paquete}`);
+      setInfoPaquete(data);
+    }
+  } catch (err) {
+    setError(err.message || "No se pudo cargar la info del paquete");
+  } finally {
+    setInfoLoading(false);
+  }
+};
+
 
   const handleToggleCityFavorite = async (cityId) => {
     try {
@@ -361,6 +394,8 @@ export default function UserDashboard() {
                       onTogglePackageFavorite={handleTogglePackageFavorite}
                       isCityFavorite={isCityFavorite(p.id_ciudad)}
                       isPackageFavorite={favoritePackages.includes(p.id)}
+                      isReserved={reservedPackageIds.has(p.id)}
+
                     />
                   ))}
                 </div>
@@ -396,11 +431,30 @@ export default function UserDashboard() {
               ) : (
                 <ul className="space-y-3">
                   {reservasPorEstado[reservaTab].map((r) => (
-                    <ReservaItem key={r.id} reserva={r} onCancel={handleCancelar} />
+                   <ReservaItem key={r.id} reserva={r} onCancel={handleCancelar} onInfo={openReservaInfo} />
+
                   ))}
                 </ul>
               )}
             </SectionCard>
+
+
+            <SectionCard
+  id="historial"
+  title="HISTORIAL"
+  subtitle="Paquetes adquiridos (pagados o terminados)."
+>
+  {historialReservas.length === 0 ? (
+    <p className="text-sm text-slate-500">No tienes paquetes adquiridos aún.</p>
+  ) : (
+    <ul className="space-y-3">
+      {historialReservas.map((r) => (
+        <ReservaItem key={r.id} reserva={r} onCancel={handleCancelar} />
+      ))}
+    </ul>
+  )}
+</SectionCard>
+
 
             <SectionCard
               id="favoritos"
@@ -475,12 +529,14 @@ export default function UserDashboard() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleReservar(pkg.id)}
-                              className="rounded-full bg-slate-900 px-3 py-2 text-[11px] font-semibold text-white hover:bg-slate-800"
-                            >
-                              Reservar
+                           <button
+                             onClick={() => handleReservar(pkg.id)}
+                             disabled={reservedPackageIds.has(pkg.id)}
+                             className="rounded-full bg-slate-900 px-3 py-2 text-[11px] font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                            > 
+                            {reservedPackageIds.has(pkg.id) ? "Reservado" : "Reservar"}
                             </button>
+
                             <button
                               onClick={() => handleTogglePackageFavorite(pkg.id)}
                               className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
@@ -498,7 +554,75 @@ export default function UserDashboard() {
             
           </div>
           
-        )}     
+        )}  
+
+           {infoReserva && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-slate-900">Detalle de reserva</h3>
+        <button
+          onClick={() => setInfoReserva(null)}
+          className="text-sm font-semibold text-slate-500 hover:text-slate-900"
+        >
+          Cerrar
+        </button>
+      </div>
+
+      {infoLoading && <p className="mt-4 text-sm text-slate-500">Cargando...</p>}
+
+      {!infoLoading && infoPaquete && (
+        <div className="mt-4 grid gap-4">
+          {infoPaquete.imagenes?.[0] && (
+            <img
+              src={infoPaquete.imagenes[0]}
+              alt={infoPaquete.titulo}
+              className="h-48 w-full rounded-2xl object-cover"
+            />
+          )}
+
+          <div>
+            <p className="text-xl font-semibold text-slate-900">{infoPaquete.titulo}</p>
+            <p className="text-sm text-slate-500">{infoPaquete.id_ciudad}</p>
+            <p className="text-sm text-slate-700 mt-1">Precio: ${infoPaquete.precio}</p>
+            <p className="text-sm text-slate-700">Cupo máximo: {infoPaquete.cupo_max}</p>
+            <p className="text-sm text-slate-700">
+              Fecha: {infoPaquete.fecha_inicio || "—"} → {infoPaquete.fecha_fin || "—"}
+            </p>
+          </div>
+
+          <div className="text-sm text-slate-700">
+            <p className="font-semibold">Tu reserva</p>
+            <p>Estado: {infoReserva.estado}</p>
+            <p>Cantidad: {infoReserva.cantidad_personas}</p>
+            <p>Fecha: {infoReserva.fecha ? new Date(infoReserva.fecha).toLocaleString() : "—"}</p>
+          </div>
+
+          <div className="text-sm text-slate-700">
+            <p className="font-semibold">Incluye</p>
+            <p>{infoPaquete.incluye?.length ? infoPaquete.incluye.join(", ") : "—"}</p>
+          </div>
+
+          <div className="text-sm text-slate-700">
+            <p className="font-semibold">No incluye</p>
+            <p>{infoPaquete.no_incluye?.length ? infoPaquete.no_incluye.join(", ") : "—"}</p>
+          </div>
+
+          <div className="text-sm text-slate-700">
+            <p className="font-semibold">Recogida</p>
+            <p>Punto: {infoPaquete.punto_recogida || "—"}</p>
+            <p>Hora: {infoPaquete.hora_recogida || "—"}</p>
+          </div>
+
+          {infoPaquete.descripcion && (
+            <p className="text-sm text-slate-600">{infoPaquete.descripcion}</p>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
           
       </main>
 

@@ -26,6 +26,8 @@ export default function AdminDashboard() {
     info: null,
   });
   const [actionLoading, setActionLoading] = useState({});
+  const [respuestaDrafts, setRespuestaDrafts] = useState({});
+
 
   async function loadData() {
     try {
@@ -142,6 +144,35 @@ export default function AdminDashboard() {
       });
     }
   }
+
+  async function handleResolverSugerencia(id, estado) {
+  const respuesta = (respuestaDrafts[id] || "").trim();
+  if (!respuesta) {
+  setRespuestaDrafts((m) => ({ ...m, [id]: "" }));
+  return;
+  }
+
+  setActionLoading((m) => ({ ...m, [`sug-${id}`]: true }));
+  setState((s) => ({ ...s, error: null, info: null }));
+
+  try {
+    await apiRequest(`/admin/sugerencias/${id}`, {
+      method: "PUT",
+      token,
+      data: { estado, respuesta_admin: respuesta },
+    });
+    setState((s) => ({ ...s, info: "Sugerencia actualizada." }));
+    await loadData();
+  } catch (err) {
+    setState((s) => ({ ...s, error: err.message || "No se pudo actualizar la sugerencia." }));
+  } finally {
+    setActionLoading((m) => {
+      const n = { ...m };
+      delete n[`sug-${id}`];
+      return n;
+    });
+  }
+}
 
   async function handleDesverificarProveedor(id) {
     if (!confirm("¿Desmarcar proveedor como verificado?")) return;
@@ -291,24 +322,57 @@ export default function AdminDashboard() {
                   {state.sugerencias.length === 0 && (
                     <p className="text-sm text-slate-500">No hay sugerencias registradas.</p>
                   )}
-                  {state.sugerencias.map((s) => (
-                    <div key={s.id} className="rounded-2xl border border-slate-100 p-4 text-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-slate-900">{s.nombre_lugar}</p>
-                        <span className="text-xs uppercase tracking-wide text-slate-500">{s.estado}</span>
-                      </div>
-                      <p className="text-slate-500">{s.ciudad}</p>
-                      {s.descripcion && <p className="mt-1 text-slate-600">{s.descripcion}</p>}
-                      <p className="mt-2 text-xs text-slate-400">
-                        {s.fecha_sugerencia
-                          ? new Date(s.fecha_sugerencia).toLocaleString()
-                          : "Sin fecha"}
-                        {" · "} usuario: {s.email}
-                      </p>
-                    </div>
-                  ))}
+                 {state.sugerencias.map((s) => (
+  <div key={s.id} className="rounded-2xl border border-slate-100 p-4 text-sm">
+    <div className="flex items-center justify-between">
+      <p className="font-semibold text-slate-900">{s.nombre_lugar}</p>
+      <span className="text-xs uppercase tracking-wide text-slate-500">{s.estado}</span>
+    </div>
+    <p className="text-slate-500">{s.ciudad}</p>
+    {s.descripcion && <p className="mt-1 text-slate-600">{s.descripcion}</p>}
+    <p className="mt-2 text-xs text-slate-400">
+      {s.fecha_sugerencia ? new Date(s.fecha_sugerencia).toLocaleString() : "Sin fecha"}
+      {" · "} usuario: {s.email}
+    </p>
+
+    {s.estado === "pendiente" && (
+      <>
+        <textarea
+          value={respuestaDrafts[s.id] || ""}
+          onChange={(e) => setRespuestaDrafts((m) => ({ ...m, [s.id]: e.target.value }))}
+          rows={2}
+          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          placeholder="Respuesta para el proveedor"
+        />
+        {!respuestaDrafts[s.id]?.trim() && (
+          <p className="mt-1 text-xs text-rose-600">Escribe una respuesta antes de aprobar o rechazar.</p>
+        )}
+
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={() => handleResolverSugerencia(s.id, "aprobada")}
+            disabled={!!actionLoading[`sug-${s.id}`]}
+            className="rounded-full bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+          >
+            Aprobar
+          </button>
+          <button
+            onClick={() => handleResolverSugerencia(s.id, "rechazada")}
+            disabled={!!actionLoading[`sug-${s.id}`]}
+            className="rounded-full bg-rose-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+          >
+            Desaprobar
+          </button>
+        </div>
+      </>
+    )}
+  </div>
+))}
                 </div>
-              </article>
+
+</article>
+
+              
 
               <article className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
                 <header className="flex items-center justify-between">

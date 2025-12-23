@@ -4,6 +4,24 @@ async function createReserva(req, res) {
   const { id_paquete, cantidad_personas } = req.body;
   const client = await pool.connect();
 
+    if (cantidad_personas > 5) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Máximo 5 cupos por reserva' });
+    }
+
+    const existing = await client.query(
+      `SELECT id FROM reserva
+       WHERE id_paquete = $1 AND id_cliente = $2
+       AND estado IN ('reservada','pagada')`,
+      [id_paquete, req.user.id]
+    );
+
+    if (existing.rowCount > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Ya tienes una reserva activa para este paquete' });
+    }
+
+
   try {
     await client.query('BEGIN');
 
